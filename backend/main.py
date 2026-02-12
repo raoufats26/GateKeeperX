@@ -5,8 +5,13 @@ import logging
 
 from backend.rate_limiter import check_request, get_blocked_ips
 from backend.metrics import log_request, get_metrics
+from backend.metrics import reset_metrics
 
-app = FastAPI(title="SentinelShield API")
+app = FastAPI(
+    title="SentinelShield API",
+    description="Application-Layer Financial DoS Protection Middleware",
+    version="1.0.0"
+)
 
 # -----------------------------
 # CORS (Safe for frontend)
@@ -73,7 +78,10 @@ async def test(request: Request):
         )
 
     log_request(blocked=False)
-    return {"status": "Request allowed"}
+    response = JSONResponse(content={"status": "Request allowed"})
+    response.headers["X-SentinelShield"] = "Protected"
+    return response
+
 
 
 # -----------------------------
@@ -83,5 +91,51 @@ async def test(request: Request):
 def metrics():
     data = get_metrics()
     data["active_blocked_ips"] = get_blocked_ips()
-    data["attack_detected"] = data["blocked_requests"] > 0
+
+    blocked = data["blocked_requests"]
+    total = data["total_requests"]
+
+    # Threat Level Classification
+    if blocked == 0:
+        threat_level = "LOW"
+    elif blocked < 50:
+        threat_level = "MEDIUM"
+    else:
+        threat_level = "HIGH"
+
+    # Protection efficiency
+    efficiency = 0
+    if total > 0:
+        efficiency = round((blocked / total) * 100, 2)
+
+    data["attack_detected"] = blocked > 0
+    data["threat_level"] = threat_level
+    data["protection_efficiency_percent"] = efficiency
+
     return data
+
+
+@app.get("/api/summary")
+def protection_summary():
+    data = get_metrics()
+
+    total = data["total_requests"]
+    blocked = data["blocked_requests"]
+
+    efficiency = 0
+    if total > 0:
+        efficiency = round((blocked / total) * 100, 2)
+
+    return {
+        "system_name": "SentinelShield",
+        "version": "1.0",
+        "requests_processed": total,
+        "threats_blocked": blocked,
+        "protection_efficiency_percent": efficiency,
+        "estimated_cost_saved": data["estimated_cost_saved"]
+    }
+
+@app.post("/api/reset")
+def reset():
+    reset_metrics()
+    return {"status": "Metrics reset successfully"}
