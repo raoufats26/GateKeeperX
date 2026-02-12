@@ -3,7 +3,7 @@ from typing import Tuple, Dict
 
 # Configuration constants
 REQUEST_LIMIT = 20
-WINDOW_SECONDS = 5
+WINDOW_SECONDS = 10
 BLOCK_TIME = 60
 
 # In-memory storage
