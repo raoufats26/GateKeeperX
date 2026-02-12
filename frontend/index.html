@@ -1,54 +1,506 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>SentinelShield Dashboard</title>
-    <link rel="stylesheet" href="css/styles.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SentinelShield — Financial DoS Protection</title>
+  <link rel="stylesheet" href="style.css"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;600;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
 </head>
 <body>
 
-<header>
-    <h1>🛡 SentinelShield: Real-Time Protection</h1>
-</header>
+  <!-- Background layers -->
+  <div class="scanlines"></div>
+  <div class="grid-bg"></div>
+  <div class="vignette"></div>
 
-<section class="stats">
-    <div class="card">
-        <h2 id="totalRequests">0</h2>
-        <p>Total Requests</p>
+  <!-- ═══════════════════ HEADER ═══════════════════ -->
+  <header class="header">
+    <div class="header-left">
+      <div class="logo">
+        <div class="logo-icon" id="logoIcon">
+          <svg width="38" height="38" viewBox="0 0 38 38" fill="none">
+            <polygon points="19,2 36,10.5 36,27.5 19,36 2,27.5 2,10.5" stroke="#00f5c4" stroke-width="1.5" fill="none"/>
+            <polygon points="19,9 29,14 29,24 19,29 9,24 9,14"         stroke="#00f5c4" stroke-width="1"   fill="rgba(0,245,196,0.04)"/>
+            <circle cx="19" cy="19" r="4" fill="#00f5c4"/>
+            <line x1="19" y1="9"  x2="19" y2="13" stroke="#00f5c4" stroke-width="1.5"/>
+            <line x1="19" y1="25" x2="19" y2="29" stroke="#00f5c4" stroke-width="1.5"/>
+            <line x1="9"  y1="14" x2="13" y2="16.5" stroke="#00f5c4" stroke-width="1.5"/>
+            <line x1="25" y1="21.5" x2="29" y2="24" stroke="#00f5c4" stroke-width="1.5"/>
+            <line x1="29" y1="14" x2="25" y2="16.5" stroke="#00f5c4" stroke-width="1.5"/>
+            <line x1="13" y1="21.5" x2="9"  y2="24" stroke="#00f5c4" stroke-width="1.5"/>
+          </svg>
+        </div>
+        <div class="logo-text">
+          <span class="logo-name">SENTINEL<span class="accent">SHIELD</span></span>
+          <span class="logo-tagline">Application-Layer Financial DoS Protection · L7</span>
+        </div>
+      </div>
     </div>
-    <div class="card danger">
-        <h2 id="blockedRequests">0</h2>
-        <p>Blocked Requests</p>
-    </div>
-    <div class="card success">
-        <h2 id="allowedRequests">0</h2>
-        <p>Allowed Requests</p>
-    </div>
-    <div class="card money">
-        <h2 id="costSaved">$0.00</h2>
-        <p>Estimated Cost Saved</p>
-    </div>
-</section>
 
-<section class="chart-container">
-    <canvas id="trafficChart"></canvas>
-</section>
+    <div class="header-center">
+      <div class="status-pill" id="statusPill">
+        <div class="status-dot" id="connDot"></div>
+        <span id="connLabel">CONNECTING</span>
+      </div>
+    </div>
 
-<section>
-    <h3>Top Attacking IPs</h3>
-    <table id="topIpsTable">
-        <thead>
-            <tr>
-                <th>IP Address</th>
-                <th>Requests</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
-</section>
+    <div class="header-right">
+      <div class="hdr-stat">
+        <span class="hdr-stat-l">UPTIME</span>
+        <span class="hdr-stat-v" id="uptime">00:00:00</span>
+      </div>
+      <div class="hdr-stat">
+        <span class="hdr-stat-l">VERSION</span>
+        <span class="hdr-stat-v">1.0.0</span>
+      </div>
+      <button class="btn btn-ghost" id="resetBtn">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/>
+        </svg>
+        RESET
+      </button>
+    </div>
+  </header>
 
-<script src="js/api.js"></script>
-<script src="js/charts.js"></script>
-<script src="js/app.js"></script>
+  <!-- ═══════════════════ THREAT BANNER ═══════════════════ -->
+  <div class="threat-banner" id="threatBanner">
+    <div class="tb-inner">
+      <svg id="tbIcon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+      </svg>
+      <span id="tbText">SYSTEM SECURE — No active threats detected</span>
+      <span class="tb-sep">|</span>
+      <span id="tbTime">--:--:--</span>
+    </div>
+  </div>
+
+  <!-- ═══════════════════ NAV TABS ═══════════════════ -->
+  <nav class="tab-nav">
+    <button class="tab-btn active" data-tab="dashboard">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+        <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+      </svg>
+      DASHBOARD
+    </button>
+    <button class="tab-btn" data-tab="simulator">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+      </svg>
+      ATTACK SIMULATOR
+    </button>
+    <button class="tab-btn" data-tab="summary">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/>
+        <line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/>
+        <line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
+      </svg>
+      SUMMARY
+    </button>
+  </nav>
+
+  <!-- ═══════════════════ DASHBOARD TAB ═══════════════════ -->
+  <main class="tab-content active" id="tab-dashboard">
+
+    <!-- Row 1: KPI Cards -->
+    <div class="kpi-row">
+
+      <div class="kpi-card" id="kpi-total">
+        <div class="kpi-accent"></div>
+        <div class="kpi-head">
+          <span class="kpi-label">TOTAL REQUESTS</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="kpi-icon">
+            <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+          </svg>
+        </div>
+        <div class="kpi-val" id="totalRequests">0</div>
+        <div class="kpi-foot">
+          <span class="kpi-sub-l">REQ/SEC</span>
+          <span class="kpi-sub-v cyan" id="rpsValue">0</span>
+        </div>
+        <div class="kpi-bar-line" id="kpiBarTotal"></div>
+      </div>
+
+      <div class="kpi-card" id="kpi-allowed">
+        <div class="kpi-accent green-a"></div>
+        <div class="kpi-head">
+          <span class="kpi-label">ALLOWED</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00e676" stroke-width="1.5" class="kpi-icon">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+          </svg>
+        </div>
+        <div class="kpi-val green" id="allowedRequests">0</div>
+        <div class="kpi-foot">
+          <span class="kpi-sub-l">PASS RATE</span>
+          <span class="kpi-sub-v green" id="passRate">100%</span>
+        </div>
+        <div class="kpi-bar-line green-a" id="kpiBarAllowed"></div>
+      </div>
+
+      <div class="kpi-card" id="kpi-blocked">
+        <div class="kpi-accent red-a"></div>
+        <div class="kpi-head">
+          <span class="kpi-label">BLOCKED</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ff3b5c" stroke-width="1.5" class="kpi-icon">
+            <circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+          </svg>
+        </div>
+        <div class="kpi-val red" id="blockedRequests">0</div>
+        <div class="kpi-foot">
+          <span class="kpi-sub-l">BLOCK RATE</span>
+          <span class="kpi-sub-v red" id="blockRate">0%</span>
+        </div>
+        <div class="kpi-bar-line red-a" id="kpiBarBlocked"></div>
+      </div>
+
+      <div class="kpi-card" id="kpi-cost">
+        <div class="kpi-accent gold-a"></div>
+        <div class="kpi-head">
+          <span class="kpi-label">COST SAVED</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffc400" stroke-width="1.5" class="kpi-icon">
+            <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+          </svg>
+        </div>
+        <div class="kpi-val gold" id="costSaved">$0.00000000</div>
+        <div class="kpi-foot">
+          <span class="kpi-sub-l">@ $0.000002 / req</span>
+          <span class="kpi-sub-v gold">SERVERLESS</span>
+        </div>
+        <div class="kpi-bar-line gold-a" id="kpiBarCost"></div>
+      </div>
+
+    </div>
+
+    <!-- Row 2: Threat + Efficiency + Activity -->
+    <div class="mid-row">
+
+      <!-- Threat Level -->
+      <div class="panel threat-panel">
+        <div class="panel-hdr">
+          <span class="panel-title">THREAT LEVEL</span>
+          <span class="badge" id="attackBadge">INACTIVE</span>
+        </div>
+        <div class="threat-body">
+          <div class="ring-wrap">
+            <svg class="threat-ring" viewBox="0 0 160 160">
+              <circle cx="80" cy="80" r="62" class="ring-track"/>
+              <circle cx="80" cy="80" r="62" class="ring-arc" id="ringArc"
+                stroke-dasharray="389.56" stroke-dashoffset="389.56"/>
+              <text x="80" y="71" class="ring-main" id="ringLabel">LOW</text>
+              <text x="80" y="88" class="ring-sub">THREAT</text>
+            </svg>
+          </div>
+          <div class="tier-list">
+            <div class="tier" id="tierLow">
+              <div class="tier-pip low-pip"></div>
+              <div>
+                <div class="tier-name">LOW</div>
+                <div class="tier-desc">0 blocked</div>
+              </div>
+            </div>
+            <div class="tier" id="tierMedium">
+              <div class="tier-pip med-pip"></div>
+              <div>
+                <div class="tier-name">MEDIUM</div>
+                <div class="tier-desc">1–49 blocked</div>
+              </div>
+            </div>
+            <div class="tier" id="tierHigh">
+              <div class="tier-pip hi-pip"></div>
+              <div>
+                <div class="tier-name">HIGH</div>
+                <div class="tier-desc">50+ blocked</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Protection Efficiency -->
+      <div class="panel eff-panel">
+        <div class="panel-hdr">
+          <span class="panel-title">PROTECTION EFFICIENCY</span>
+          <span class="panel-hint">blocked / total</span>
+        </div>
+        <div class="eff-body">
+          <div class="eff-big">
+            <span class="eff-num" id="effNum">0.0</span>
+            <span class="eff-pct">%</span>
+          </div>
+          <div class="eff-track-wrap">
+            <div class="eff-track">
+              <div class="eff-fill" id="effFill"></div>
+              <div class="eff-glow" id="effGlow"></div>
+            </div>
+            <div class="eff-labels"><span>0%</span><span>50%</span><span>100%</span></div>
+          </div>
+          <div class="eff-stats">
+            <div class="eff-stat">
+              <span class="es-label">ALGORITHM</span>
+              <span class="es-val cyan">SLIDING WINDOW</span>
+            </div>
+            <div class="eff-stat">
+              <span class="es-label">LIMIT</span>
+              <span class="es-val cyan">20 req / 5s</span>
+            </div>
+            <div class="eff-stat">
+              <span class="es-label">BLOCK DURATION</span>
+              <span class="es-val cyan">60 seconds</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Activity Feed -->
+      <div class="panel feed-panel">
+        <div class="panel-hdr">
+          <span class="panel-title">LIVE ACTIVITY LOG</span>
+          <span class="panel-hint" id="lastPoll">--:--:--</span>
+        </div>
+        <div class="feed" id="activityFeed">
+          <div class="feed-empty">Awaiting traffic...</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Row 3: Blocked IPs + Top IPs + Graph -->
+    <div class="bot-row">
+
+      <!-- Active Blocks -->
+      <div class="panel blocks-panel">
+        <div class="panel-hdr">
+          <span class="panel-title">ACTIVE BLOCKS</span>
+          <span class="count-badge red-badge" id="blockedCount">0</span>
+        </div>
+        <div class="ip-list" id="blockedList">
+          <div class="list-empty">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+            No blocked IPs
+          </div>
+        </div>
+      </div>
+
+      <!-- Top IPs -->
+      <div class="panel topips-panel">
+        <div class="panel-hdr">
+          <span class="panel-title">TOP REQUEST IPs</span>
+          <span class="panel-hint">by volume</span>
+        </div>
+        <div class="ip-list" id="topIpsList">
+          <div class="list-empty">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="2" y1="12" x2="22" y2="12"/>
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+            </svg>
+            No IP data yet
+          </div>
+        </div>
+      </div>
+
+      <!-- Request Graph -->
+      <div class="panel graph-panel">
+        <div class="panel-hdr">
+          <span class="panel-title">REQUEST RATE — LAST 30s</span>
+          <div class="graph-legend">
+            <span class="leg-dot green-dot"></span><span class="leg-label">Allowed</span>
+            <span class="leg-dot red-dot"></span><span class="leg-label">Blocked</span>
+          </div>
+        </div>
+        <div class="canvas-wrap">
+          <canvas id="reqGraph"></canvas>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ═══════════════════ ATTACK SIMULATOR TAB ═══════════════════ -->
+  <main class="tab-content" id="tab-simulator">
+    <div class="sim-layout">
+
+      <!-- Control Panel -->
+      <div class="panel sim-ctrl-panel">
+        <div class="panel-hdr">
+          <span class="panel-title">ATTACK CONTROL</span>
+          <span class="badge red-badge" id="simStatusBadge">IDLE</span>
+        </div>
+
+        <div class="sim-form">
+          <div class="sim-field">
+            <label class="sim-label">TARGET ENDPOINT</label>
+            <select class="sim-select" id="simEndpoint">
+              <option value="/api/test">/api/test — Protected (rate-limited)</option>
+              <option value="/api/metrics">/api/metrics — Metrics</option>
+              <option value="/health">/health — Health check</option>
+            </select>
+          </div>
+
+          <div class="sim-row">
+            <div class="sim-field">
+              <label class="sim-label">BURST SIZE</label>
+              <input class="sim-input" type="number" id="simBurst" value="50" min="1" max="500"/>
+              <span class="sim-hint">requests per burst</span>
+            </div>
+            <div class="sim-field">
+              <label class="sim-label">DELAY (ms)</label>
+              <input class="sim-input" type="number" id="simDelay" value="50" min="0" max="2000"/>
+              <span class="sim-hint">between requests</span>
+            </div>
+          </div>
+
+          <div class="sim-row">
+            <div class="sim-field">
+              <label class="sim-label">CONCURRENCY</label>
+              <input class="sim-input" type="number" id="simConcurrency" value="5" min="1" max="20"/>
+              <span class="sim-hint">parallel workers</span>
+            </div>
+            <div class="sim-field">
+              <label class="sim-label">MODE</label>
+              <select class="sim-select" id="simMode">
+                <option value="burst">Single Burst</option>
+                <option value="continuous">Continuous Flood</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="sim-btns">
+            <button class="btn btn-attack" id="simStartBtn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+              </svg>
+              LAUNCH ATTACK
+            </button>
+            <button class="btn btn-ghost" id="simStopBtn" disabled>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2"/>
+              </svg>
+              STOP
+            </button>
+          </div>
+        </div>
+
+        <!-- Live sim stats -->
+        <div class="sim-stats">
+          <div class="sim-stat">
+            <span class="ss-label">SENT</span>
+            <span class="ss-val cyan" id="simSent">0</span>
+          </div>
+          <div class="sim-stat">
+            <span class="ss-label">ALLOWED</span>
+            <span class="ss-val green" id="simAllowed">0</span>
+          </div>
+          <div class="sim-stat">
+            <span class="ss-label">BLOCKED (429)</span>
+            <span class="ss-val red" id="simBlocked">0</span>
+          </div>
+          <div class="sim-stat">
+            <span class="ss-label">ERRORS</span>
+            <span class="ss-val gold" id="simErrors">0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Request Log -->
+      <div class="panel sim-log-panel">
+        <div class="panel-hdr">
+          <span class="panel-title">REQUEST LOG</span>
+          <button class="btn btn-ghost btn-xs" id="clearLogBtn">CLEAR</button>
+        </div>
+        <div class="sim-log" id="simLog">
+          <div class="feed-empty">Launch an attack to see results...</div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ═══════════════════ SUMMARY TAB ═══════════════════ -->
+  <main class="tab-content" id="tab-summary">
+    <div class="summary-layout">
+
+      <div class="panel summary-main">
+        <div class="panel-hdr">
+          <span class="panel-title">PROTECTION SUMMARY</span>
+          <button class="btn btn-ghost btn-xs" id="refreshSummaryBtn">REFRESH</button>
+        </div>
+        <div class="summary-grid" id="summaryGrid">
+          <div class="sum-item">
+            <span class="sum-label">SYSTEM</span>
+            <span class="sum-val cyan" id="sumName">—</span>
+          </div>
+          <div class="sum-item">
+            <span class="sum-label">VERSION</span>
+            <span class="sum-val cyan" id="sumVersion">—</span>
+          </div>
+          <div class="sum-item">
+            <span class="sum-label">REQUESTS PROCESSED</span>
+            <span class="sum-val white" id="sumTotal">0</span>
+          </div>
+          <div class="sum-item">
+            <span class="sum-label">THREATS BLOCKED</span>
+            <span class="sum-val red" id="sumBlocked">0</span>
+          </div>
+          <div class="sum-item">
+            <span class="sum-label">PROTECTION EFFICIENCY</span>
+            <span class="sum-val green" id="sumEff">0%</span>
+          </div>
+          <div class="sum-item">
+            <span class="sum-label">ESTIMATED COST SAVED</span>
+            <span class="sum-val gold" id="sumCost">$0.00000000</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Health + Status -->
+      <div class="sum-side">
+        <div class="panel">
+          <div class="panel-hdr">
+            <span class="panel-title">HEALTH CHECK  <code class="route-tag">GET /health</code></span>
+            <button class="btn btn-ghost btn-xs" id="refreshHealthBtn">PING</button>
+          </div>
+          <div class="health-display" id="healthDisplay">
+            <div class="health-icon" id="healthIcon">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              </svg>
+            </div>
+            <span class="health-label" id="healthLabel">—</span>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-hdr">
+            <span class="panel-title">API STATUS  <code class="route-tag">GET /api/status</code></span>
+            <button class="btn btn-ghost btn-xs" id="refreshStatusBtn">CHECK</button>
+          </div>
+          <div class="status-rows" id="statusRows">
+            <div class="list-empty">Click CHECK</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <span>SENTINELSHIELD v1.0.0</span>
+    <span class="fsep">·</span>
+    <span>Sliding Window · IP Fingerprinting · Cost Simulation</span>
+    <span class="fsep">·</span>
+    <span id="footerTime">--:--:--</span>
+  </footer>
+
+  <!-- Toasts -->
+  <div class="toast-stack" id="toastStack"></div>
+
+  <script src="main.js"></script>
 </body>
 </html>
