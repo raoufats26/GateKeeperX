@@ -9,6 +9,7 @@ allowed_requests = 0
 blocked_requests = 0
 
 ip_counter = defaultdict(int)
+blocked_ip_counter = defaultdict(int)
 
 metrics_lock = Lock()
 
@@ -21,10 +22,16 @@ recent_requests = deque()
 # Simulated infrastructure cost
 COST_PER_REQUEST = 0.000002
 
+# Risk scoring
+total_risk_score = 0
+
+# Attack detection threshold
+ATTACK_RPS_THRESHOLD = 50
+REPEAT_OFFENDER_THRESHOLD = 20
 
 # Logging Requests
 def log_request(blocked: bool, ip: str = None):
-    global total_requests, allowed_requests, blocked_requests
+    global total_requests, allowed_requests, blocked_requests, total_risk_score
 
     current_time = time.time()
 
@@ -34,11 +41,16 @@ def log_request(blocked: bool, ip: str = None):
 
         if blocked:
             blocked_requests += 1
+            total_risk_score += 0.9
+            if ip:
+                blocked_ip_counter[ip] += 1
         else:
             allowed_requests += 1
+            total_risk_score += 0.2
 
         if ip:
             ip_counter[ip] += 1
+
 
 
 # Metrics Retrieval
@@ -48,7 +60,6 @@ def get_metrics():
         current_time = time.time()
         uptime = current_time - start_time
 
-        
         # Clean old timestamps (older than 10 sec)
         while recent_requests and current_time - recent_requests[0] > 10:
             recent_requests.popleft()
@@ -61,7 +72,14 @@ def get_metrics():
             [t for t in recent_requests if current_time - t <= 1]
         )
 
-     
+  
+        # System Mode Detection
+        system_mode = (
+            "UNDER_ATTACK"
+            if rps_last_10_sec > ATTACK_RPS_THRESHOLD
+            else "NORMAL"
+        )
+
         # Financial Simulation
         estimated_damage_without_protection = (
             total_requests * COST_PER_REQUEST
@@ -75,17 +93,20 @@ def get_metrics():
             allowed_requests * COST_PER_REQUEST
         )
 
-        # Project hourly impact (based on last 10 sec rate)
         projected_hourly_requests = rps_last_10_sec * 3600
-        projected_hourly_damage = (
+        projected_hourly_loss = (
             projected_hourly_requests * COST_PER_REQUEST
         )
 
-        projected_hourly_savings = (
-            projected_hourly_damage * (
-                (blocked_requests / total_requests)
-                if total_requests > 0 else 0
-            )
+        # Risk Analytics
+        average_risk_score = (
+            total_risk_score / total_requests
+            if total_requests > 0 else 0
+        )
+
+        efficiency = (
+            (blocked_requests / total_requests) * 100
+            if total_requests > 0 else 0
         )
 
         savings_percentage = (
@@ -93,16 +114,17 @@ def get_metrics():
             if estimated_damage_without_protection > 0 else 0
         )
 
+        # -----------------------------
+        # Repeat Offenders
+        # -----------------------------
+        repeat_offender_count = len([
+            ip for ip, count in blocked_ip_counter.items()
+            if count >= REPEAT_OFFENDER_THRESHOLD
+        ])
 
-        # Protection efficiency %
-        efficiency = (
-            (blocked_requests / total_requests) * 100
-            if total_requests > 0
-            else 0
-        )
-
-
+        # -----------------------------
         # Top 5 IPs
+        # -----------------------------
         top_ips = sorted(
             ip_counter.items(),
             key=lambda x: x[1],
@@ -110,15 +132,20 @@ def get_metrics():
         )[:5]
 
         return {
-            # Core Metrics
+            # Core
             "total_requests": total_requests,
             "allowed_requests": allowed_requests,
             "blocked_requests": blocked_requests,
 
-            # Traffic Analytics
+            # Traffic
             "rps_last_10_seconds": round(rps_last_10_sec, 2),
             "rps_last_1_second": rps_last_1_sec,
             "uptime_seconds": round(uptime, 2),
+
+            # System Intelligence
+            "system_mode": system_mode,
+            "average_risk_score": round(average_risk_score, 3),
+            "repeat_offender_count": repeat_offender_count,
 
             # Attackers
             "top_ips": [
@@ -126,7 +153,7 @@ def get_metrics():
                 for ip, count in top_ips
             ],
 
-            # Business Impact
+            # Financial
             "estimated_damage_without_protection": round(
                 estimated_damage_without_protection, 6
             ),
@@ -136,11 +163,8 @@ def get_metrics():
             "estimated_cost_saved": round(
                 estimated_cost_saved, 6
             ),
-            "projected_hourly_damage": round(
-                projected_hourly_damage, 4
-            ),
-            "projected_hourly_savings": round(
-                projected_hourly_savings, 4
+            "projected_hourly_loss": round(
+                projected_hourly_loss, 4
             ),
             "savings_percentage": round(savings_percentage, 2),
 
@@ -149,15 +173,17 @@ def get_metrics():
         }
 
 
-
-# Reset Metrics (For Demo)
+# Reset Metrics
 def reset_metrics():
-    global total_requests, allowed_requests, blocked_requests, start_time
+    global total_requests, allowed_requests, blocked_requests
+    global start_time, total_risk_score
 
     with metrics_lock:
         total_requests = 0
         allowed_requests = 0
         blocked_requests = 0
+        total_risk_score = 0
         ip_counter.clear()
+        blocked_ip_counter.clear()
         recent_requests.clear()
         start_time = time.time()
