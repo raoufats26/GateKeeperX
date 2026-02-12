@@ -1,89 +1,139 @@
 import time
-from typing import Tuple, Dict
+from typing import Dict
 
-# Configuration constants
+# ========================================
+# CONFIGURATION
+# ========================================
 REQUEST_LIMIT = 20
 WINDOW_SECONDS = 5
-BLOCK_TIME = 60
+BASE_BLOCK_TIME = 60
+SEVERITY_MULTIPLIER = 2
 
-# In-memory storage
+
+# ========================================
+# STORAGE
+# ========================================
+# Track request timestamps per IP
 ip_requests: Dict[str, list] = {}
+
+# Track blocked IPs and their unblock time
 blocked_ips: Dict[str, float] = {}
 
+# Track severity level per IP (number of violations)
+severity: Dict[str, int] = {}
 
-def is_allowed(ip: str) -> Tuple[bool, str]:
+
+# ========================================
+# CORE LOGIC
+# ========================================
+def _adaptive_rate_limiter(ip: str) -> bool:
     """
-    Check if a request from the given IP should be allowed.
+    Adaptive intelligent rate limiter with escalating block duration.
     
     Returns:
-        (True, "allowed") - Request is allowed
-        (False, "rate_limited") - Request exceeded rate limit
-        (False, "blocked") - IP is currently blocked
+        True if request is allowed, False if blocked or rate limited
     """
     current_time = time.time()
     
     # Check if IP is currently blocked
     if ip in blocked_ips:
         if current_time < blocked_ips[ip]:
-            return (False, "blocked")
+            # Still blocked
+            return False
         else:
-            # Block expired, remove from blocked list
-            del blocked_ips[ip]
+            # Block expired - perform cooldown reset
+            _cooldown_reset(ip)
     
     # Initialize tracking for new IP
     if ip not in ip_requests:
         ip_requests[ip] = []
     
-    # Remove timestamps outside the sliding window
+    # Sliding window: remove timestamps outside the window
     ip_requests[ip] = [
         timestamp for timestamp in ip_requests[ip]
         if current_time - timestamp < WINDOW_SECONDS
     ]
     
-    # Check if limit exceeded before adding current request
+    # Check if rate limit exceeded
     if len(ip_requests[ip]) >= REQUEST_LIMIT:
-        # Block the IP
-        blocked_ips[ip] = current_time + BLOCK_TIME
-        return (False, "rate_limited")
+        # Increase severity counter for this IP
+        if ip not in severity:
+            severity[ip] = 0
+        severity[ip] += 1
+        
+        # Calculate adaptive block duration
+        block_duration = BASE_BLOCK_TIME * (SEVERITY_MULTIPLIER ** (severity[ip] - 1))
+        
+        # Block the IP with adaptive duration
+        blocked_ips[ip] = current_time + block_duration
+        
+        return False
     
     # Add current request timestamp
     ip_requests[ip].append(current_time)
     
-    return (True, "allowed")
+    return True
 
 
+def _cooldown_reset(ip: str):
+    """
+    Reset all tracking data for an IP after block expires.
+    Prevents memory growth and resets attack state.
+    """
+    # Remove from blocked IPs
+    if ip in blocked_ips:
+        del blocked_ips[ip]
+    
+    # Remove request history
+    if ip in ip_requests:
+        del ip_requests[ip]
+    
+    # Reset severity counter
+    if ip in severity:
+        del severity[ip]
+
+
+# ========================================
+# COMPATIBILITY WRAPPER
+# ========================================
 def check_request(ip: str) -> bool:
     """
-    Legacy compatibility function for existing main.py integration.
+    Compatibility function for FastAPI middleware integration.
+    MUST NOT be modified - required by main.py.
     
+    Args:
+        ip: IP address to check
+        
     Returns:
         True if request is allowed, False otherwise
     """
-    allowed, _ = is_allowed(ip)
-    return allowed
+    return _adaptive_rate_limiter(ip)
 
 
+# ========================================
+# MONITORING
+# ========================================
 def get_blocked_ips() -> Dict[str, float]:
     """
-    Get currently blocked IPs and their remaining block time in seconds.
+    Get currently blocked IPs and their remaining block time.
     
     Returns:
         Dictionary mapping IP addresses to remaining block time in seconds
     """
     current_time = time.time()
     result = {}
-    
-    # Clean up expired blocks and calculate remaining time
     expired_ips = []
+    
+    # Calculate remaining time and identify expired blocks
     for ip, block_until in blocked_ips.items():
         remaining = block_until - current_time
         if remaining > 0:
-            result[ip] = remaining
+            result[ip] = round(remaining, 2)
         else:
             expired_ips.append(ip)
     
-    # Remove expired blocks
+    # Perform cooldown reset for expired blocks
     for ip in expired_ips:
-        del blocked_ips[ip]
+        _cooldown_reset(ip)
     
     return result
