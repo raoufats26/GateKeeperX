@@ -4,7 +4,22 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b66df700-0cd0-40f5-b36f-dd15ca9ced60" name="Changes" comment="attack_phase1" />
+    <list default="true" id="b66df700-0cd0-40f5-b36f-dd15ca9ced60" name="Changes" comment="attack_phase1">
+      <change afterPath="$PROJECT_DIR$/frontend/JS/api.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/JS/app.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/JS/charts.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/JS/utils.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/index.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/index2.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/index3.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/style.css" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/mock_backend.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/metrics.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/metrics.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/rate_limiter.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/rate_limiter.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -53,7 +68,7 @@
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
     "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "master",
+    "git-widget-placeholder": "Merging master",
     "ignore.virus.scanning.warn.message": "true",
     "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable"
   }

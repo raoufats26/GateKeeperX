@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SentinelShield — Live Threat Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&family=Orbitron:wght@700;900&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <style>
+    /* ─── Design Tokens ─────────────────────────────────────── */
+    :root {
+      --bg-void:       #04060c;
+      --bg-panel:      #080d18;
+      --bg-panel-alt:  #0b1120;
+      --border:        #1a2840;
+      --border-glow:   #1e4080;
+      --accent-blue:   #00aaff;
+      --accent-green:  #00ff88;
+      --accent-red:    #ff3355;
+      --accent-amber:  #ffaa00;
+      --text-primary:  #d0e8ff;
+      --text-dim:      #4a6a8a;
+      --text-muted:    #2a3f58;
+      --font-mono:     'Share Tech Mono', monospace;
+      --font-ui:       'Rajdhani', sans-serif;
+      --font-display:  'Orbitron', sans-serif;
+    }
+
+    /* ─── Reset & Base ──────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { font-size: 14px; }
+
+    body {
+      background: var(--bg-void);
+      color: var(--text-primary);
+      font-family: var(--font-ui);
+      min-height: 100vh;
+      overflow-x: hidden;
+      /* Scanline overlay */
+      background-image:
+        repeating-linear-gradient(
+          0deg,
+          transparent,
+          transparent 2px,
+          rgba(0, 170, 255, 0.015) 2px,
+          rgba(0, 170, 255, 0.015) 4px
+        );
+    }
+
+    /* ─── Noise texture via pseudo-element ─────────────────── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+      pointer-events: none; z-index: 0;
+    }
+
+    /* ─── Layout ────────────────────────────────────────────── */
+    #app {
+      position: relative; z-index: 1;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      min-height: 100vh;
+      padding: 0 20px 20px;
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+
+    /* ─── Header ────────────────────────────────────────────── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 0 16px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 20px;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .logo-mark {
+      width: 38px; height: 38px;
+      border: 1.5px solid var(--accent-blue);
+      display: flex; align-items: center; justify-content: center;
+      position: relative;
+      clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+      background: rgba(0, 170, 255, 0.08);
+      animation: pulse-logo 3s ease-in-out infinite;
+    }
+
+    @keyframes pulse-logo {
+      0%, 100% { box-shadow: 0 0 0 rgba(0,170,255,0); }
+      50% { box-shadow: 0 0 18px rgba(0,170,255,0.4); }
+    }
+
+    .logo-mark svg { width: 18px; height: 18px; fill: var(--accent-blue); }
+
+    .logo-text {
+      display: flex; flex-direction: column; gap: 0;
+    }
+
+    .logo-text .title {
+      font-family: var(--font-display);
+      font-size: 1.15rem;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      color: var(--accent-blue);
+      text-shadow: 0 0 20px rgba(0,170,255,0.5);
+      line-height: 1;
+    }
+
+    .logo-text .sub {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--text-dim);
+      letter-spacing: 0.12em;
+      line-height: 1.4;
+    }
+
+    .header-center {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .status-pill {
+      display: flex; align-items: center; gap: 7px;
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      letter-spacing: 0.1em;
+      color: var(--text-primary);
+      background: rgba(0, 255, 136, 0.06);
+      border: 1px solid rgba(0, 255, 136, 0.25);
+      padding: 5px 12px;
+      text-transform: uppercase;
+    }
+
+    .status-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--accent-green);
+      animation: blink-dot 1.4s ease-in-out infinite;
+    }
+
+    @keyframes blink-dot {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.2; }
+    }
+
+    .header-right {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      text-align: right;
+    }
+
+    #live-clock { color: var(--accent-blue); display: block; font-size: 0.85rem; }
+
+    /* ─── Main grid ─────────────────────────────────────────── */
+    .dashboard {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 320px;
+      grid-template-rows: auto auto 1fr;
+      gap: 14px;
+    }
+
+    /* ─── Stat Cards (row 1) ─────────────────────────────────── */
+    .stat-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      padding: 20px 22px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.3s;
+    }
+
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0;
+      width: 3px; height: 100%;
+    }
+
+    .stat-card.blue::before   { background: var(--accent-blue); box-shadow: 0 0 12px var(--accent-blue); }
+    .stat-card.green::before  { background: var(--accent-green); box-shadow: 0 0 12px var(--accent-green); }
+    .stat-card.red::before    { background: var(--accent-red); box-shadow: 0 0 12px var(--accent-red); }
+    .stat-card.amber::before  { background: var(--accent-amber); box-shadow: 0 0 12px var(--accent-amber); }
+
+    .stat-card .card-label {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.15em;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .stat-card .card-value {
+      font-family: var(--font-display);
+      font-size: 2.4rem;
+      font-weight: 700;
+      line-height: 1;
+      transition: color 0.3s;
+    }
+
+    .stat-card.blue .card-value  { color: var(--accent-blue); text-shadow: 0 0 24px rgba(0,170,255,0.4); }
+    .stat-card.green .card-value { color: var(--accent-green); text-shadow: 0 0 24px rgba(0,255,136,0.4); }
+    .stat-card.red .card-value   { color: var(--accent-red); text-shadow: 0 0 24px rgba(255,51,85,0.4); }
+    .stat-card.amber .card-value { color: var(--accent-amber); text-shadow: 0 0 24px rgba(255,170,0,0.4); }
+
+    .stat-card .card-delta {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      margin-top: 8px;
+    }
+
+    .stat-card .card-icon {
+      position: absolute;
+      right: 18px; top: 50%;
+      transform: translateY(-50%);
+      font-size: 2.5rem;
+      opacity: 0.06;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    /* number pop animation */
+    .pop {
+      animation: pop-num 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    }
+
+    @keyframes pop-num {
+      from { transform: scale(1.3); }
+      to   { transform: scale(1); }
+    }
+
+    /* ─── Chart panel ────────────────────────────────────────── */
+    .chart-panel {
+      grid-column: 1 / 4;
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      padding: 20px 22px;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .panel-title {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.15em;
+      color: var(--text-dim);
+      text-transform: uppercase;
+    }
+
+    .panel-badge {
+      font-family: var(--font-mono);
+      font-size: 0.62rem;
+      letter-spacing: 0.1em;
+      padding: 3px 8px;
+      border: 1px solid;
+    }
+
+    .panel-badge.live {
+      color: var(--accent-green);
+      border-color: rgba(0,255,136,0.3);
+      background: rgba(0,255,136,0.05);
+    }
+
+    .chart-wrap {
+      height: 200px;
+      position: relative;
+    }
+
+    /* ─── IP Table panel ─────────────────────────────────────── */
+    .ip-panel {
+      grid-column: 1 / 3;
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      padding: 20px 22px;
+      overflow: hidden;
+    }
+
+    .ip-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+    }
+
+    .ip-table th {
+      text-align: left;
+      padding: 0 8px 10px;
+      color: var(--text-dim);
+      font-size: 0.62rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .ip-table td {
+      padding: 9px 8px;
+      border-bottom: 1px solid var(--border-glow);
+      color: var(--text-primary);
+    }
+
+    .ip-table tr:last-child td { border-bottom: none; }
+
+    .ip-table tr { transition: background 0.15s; }
+    .ip-table tr:hover td { background: rgba(0,170,255,0.04); }
+
+    .badge-blocked {
+      display: inline-block;
+      background: rgba(255,51,85,0.15);
+      color: var(--accent-red);
+      border: 1px solid rgba(255,51,85,0.3);
+      padding: 1px 7px;
+      font-size: 0.62rem;
+      letter-spacing: 0.08em;
+    }
+
+    .badge-active {
+      display: inline-block;
+      background: rgba(0,255,136,0.1);
+      color: var(--accent-green);
+      border: 1px solid rgba(0,255,136,0.3);
+      padding: 1px 7px;
+      font-size: 0.62rem;
+      letter-spacing: 0.08em;
+    }
+
+    .bar-mini {
+      height: 4px;
+      background: var(--border);
+      border-radius: 0;
+      margin-top: 4px;
+    }
+
+    .bar-mini-fill {
+      height: 4px;
+      background: var(--accent-red);
+      transition: width 0.5s ease;
+      box-shadow: 0 0 6px var(--accent-red);
+    }
+
+    /* ─── Cost panel ─────────────────────────────────────────── */
+    .cost-panel {
+      grid-column: 3;
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      padding: 20px 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .cost-big {
+      font-family: var(--font-display);
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--accent-green);
+      text-shadow: 0 0 20px rgba(0,255,136,0.4);
+      line-height: 1;
+    }
+
+    .cost-label {
+      font-family: var(--font-mono);
+      font-size: 0.62rem;
+      color: var(--text-dim);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 2px;
+    }
+
+    .cost-formula {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .cost-formula span { color: var(--accent-amber); }
+
+    .divider { height: 1px; background: var(--border); }
+
+    .cost-rate-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+
+    .block-rate-value {
+      font-family: var(--font-display);
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--accent-red);
+    }
+
+    /* ─── Event log ──────────────────────────────────────────── */
+    .log-panel {
+      grid-column: 4;
+      grid-row: 2 / 4;
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      padding: 20px 18px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .log-body {
+      flex: 1;
+      overflow-y: auto;
+      margin-top: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      /* Custom scrollbar */
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+
+    .log-body::-webkit-scrollbar { width: 4px; }
+    .log-body::-webkit-scrollbar-thumb { background: var(--border-glow); }
+
+    .log-entry {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      padding: 6px 10px;
+      border-left: 2px solid transparent;
+      background: var(--bg-panel-alt);
+      animation: slide-in 0.2s ease;
+      line-height: 1.4;
+    }
+
+    .log-entry.blocked {
+      border-left-color: var(--accent-red);
+      color: rgba(255,51,85,0.85);
+      background: rgba(255,51,85,0.05);
+    }
+
+    .log-entry.allowed {
+      border-left-color: var(--accent-green);
+      color: rgba(0,255,136,0.7);
+    }
+
+    .log-entry.warn {
+      border-left-color: var(--accent-amber);
+      color: rgba(255,170,0,0.85);
+    }
+
+    @keyframes slide-in {
+      from { opacity: 0; transform: translateX(8px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+    .log-time { opacity: 0.5; }
+    .log-ip   { color: var(--text-primary); font-weight: bold; }
+
+    /* ─── Footer ─────────────────────────────────────────────── */
+    footer {
+      margin-top: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 14px;
+      border-top: 1px solid var(--border);
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--text-muted);
+    }
+
+    footer .up-indicator {
+      display: flex; align-items: center; gap: 6px;
+    }
+    footer .up-indicator::before {
+      content: '';
+      display: block;
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--accent-green);
+      animation: blink-dot 1.4s ease-in-out infinite;
+    }
+
+    /* ─── Attack Simulation Mode ─────────────────────────────── */
+    .threat-banner {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255, 51, 85, 0.1);
+      border: 1px solid rgba(255, 51, 85, 0.4);
+      padding: 10px 18px;
+      margin-bottom: 14px;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: var(--accent-red);
+      animation: threat-flash 0.8s linear infinite;
+    }
+
+    .threat-banner.visible { display: flex; }
+
+    @keyframes threat-flash {
+      0%, 100% { border-color: rgba(255,51,85,0.4); }
+      50% { border-color: rgba(255,51,85,0.9); }
+    }
+
+    .threat-banner::before {
+      content: '⚠';
+      font-size: 1rem;
+    }
+
+    /* ─── Demomode toggle button ─────────────────────────────── */
+    .demo-btn {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 8px 18px;
+      cursor: pointer;
+      border: 1px solid var(--accent-amber);
+      background: rgba(255,170,0,0.07);
+      color: var(--accent-amber);
+      transition: all 0.2s;
+    }
+
+    .demo-btn:hover {
+      background: rgba(255,170,0,0.15);
+      box-shadow: 0 0 12px rgba(255,170,0,0.25);
+    }
+
+    .demo-btn.active {
+      background: rgba(255,51,85,0.12);
+      color: var(--accent-red);
+      border-color: var(--accent-red);
+    }
+
+    /* ─── Responsive fine-tuning ─────────────────────────────── */
+    @media (max-width: 1200px) {
+      .dashboard {
+        grid-template-columns: 1fr 1fr 1fr;
+      }
+      .log-panel {
+        grid-column: 1 / 4;
+        grid-row: auto;
+        max-height: 260px;
+      }
+    }
+
+    @media (max-width: 800px) {
+      .dashboard {
+        grid-template-columns: 1fr 1fr;
+      }
+      .chart-panel, .ip-panel, .cost-panel, .log-panel {
+        grid-column: 1 / 3;
+      }
+    }
+  </style>
+</head>
+
+<body>
+<div id="app">
+
+  <!-- ── Header ─────────────────────────────────────────── -->
+  <header>
+    <div class="header-left">
+      <div class="logo-mark">
+        <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.5 3.8 10.7 9 12 5.2-1.3 9-6.5 9-12V5L12 1z"/></svg>
+      </div>
+      <div class="logo-text">
+        <span class="title">SentinelShield</span>
+        <span class="sub">APPLICATION-LAYER DOS MITIGATION v1.0</span>
+      </div>
+    </div>
+
+    <div class="header-center">
+      <div class="status-pill">
+        <span class="status-dot"></span>
+        <span id="system-status">SYSTEM ACTIVE</span>
+      </div>
+      <button class="demo-btn" id="demo-btn" onclick="toggleDemo()">⚡ SIMULATE ATTACK</button>
+    </div>
+
+    <div class="header-right">
+      <span id="live-clock">--:--:--</span>
+      <span>UPTIME: <span id="uptime-val">00:00:00</span></span>
+    </div>
+  </header>
+
+  <!-- ── Threat Banner ──────────────────────────────────── -->
+  <div class="threat-banner" id="threat-banner">
+    ATTACK DETECTED — Rate limiting active. Auto-blocking triggered. Protecting backend.
+  </div>
+
+  <!-- ── Dashboard Grid ────────────────────────────────── -->
+  <div class="dashboard">
+
+    <!-- Stat: Total Requests -->
+    <div class="stat-card blue">
+      <div class="card-label">Total Requests</div>
+      <div class="card-value" id="stat-total">0</div>
+      <div class="card-delta" id="delta-total">+0 / sec</div>
+      <div class="card-icon">⬡</div>
+    </div>
+
+    <!-- Stat: Allowed -->
+    <div class="stat-card green">
+      <div class="card-label">Allowed</div>
+      <div class="card-value" id="stat-allowed">0</div>
+      <div class="card-delta" id="delta-allowed">+0 / sec</div>
+      <div class="card-icon">✓</div>
+    </div>
+
+    <!-- Stat: Blocked -->
+    <div class="stat-card red">
+      <div class="card-label">Blocked (429s)</div>
+      <div class="card-value" id="stat-blocked">0</div>
+      <div class="card-delta" id="delta-blocked">+0 / sec</div>
+      <div class="card-icon">🛡</div>
+    </div>
+
+    <!-- Log panel (spans rows) -->
+    <div class="log-panel" style="grid-row: 1 / 4; grid-column: 4;">
+      <div class="panel-header">
+        <span class="panel-title">Event Log</span>
+        <span class="panel-badge live">● LIVE</span>
+      </div>
+      <div class="log-body" id="log-body">
+        <div class="log-entry allowed">
+          <span class="log-time">[00:00:00]</span> System initialized. Monitoring started.
+        </div>
+      </div>
+    </div>
+
+    <!-- Chart panel -->
+    <div class="chart-panel">
+      <div class="panel-header">
+        <span class="panel-title">Request Traffic — Real-Time (60s window)</span>
+        <span class="panel-badge live">● LIVE</span>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="traffic-chart"></canvas>
+      </div>
+    </div>
+
+    <!-- IP Table -->
+    <div class="ip-panel">
+      <div class="panel-header">
+        <span class="panel-title">Top Attacking IPs</span>
+        <span class="panel-badge" style="color:var(--text-dim);border-color:var(--border);">LAST 60 SEC</span>
+      </div>
+      <table class="ip-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>IP Address</th>
+            <th>Requests</th>
+            <th>Blocked</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="ip-table-body">
+          <tr>
+            <td style="color:var(--text-muted)">—</td>
+            <td style="color:var(--text-muted)">No traffic yet</td>
+            <td>—</td><td>—</td><td>—</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Cost Panel -->
+    <div class="cost-panel">
+      <div>
+        <div class="cost-label">Estimated Cost Saved</div>
+        <div class="cost-big" id="cost-val">$0.0000</div>
+      </div>
+      <div class="divider"></div>
+      <div class="cost-formula">
+        blocked × <span>$0.000002</span><br>
+        per Lambda invocation avoided<br>
+        <br>
+        blocked_req: <span id="cost-blocked-n">0</span><br>
+        rate: <span>$0.000002 / req</span>
+      </div>
+      <div class="divider"></div>
+      <div>
+        <div class="cost-label">Block Rate</div>
+        <div class="cost-rate-row">
+          <div class="block-rate-value" id="block-rate-val">0%</div>
+          <div class="cost-formula" style="text-align:right">
+            of all<br>traffic
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /dashboard -->
+
+  <footer>
+    <div class="up-indicator">SENTINEL SHIELD ACTIVE — HACKATHON 2026</div>
+    <div>Polling /api/metrics every 1s · Token Bucket Algorithm · FastAPI Backend</div>
+    <div>Member 4 — Frontend Dashboard</div>
+  </footer>
+
+</div><!-- /app -->
+
+
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   SentinelShield Dashboard — app.js
+   Polls /api/metrics every 1s. Falls back to demo simulation.
+═══════════════════════════════════════════════════════════════ */
+
+// ── Config ────────────────────────────────────────────────────
+const API_URL      = '/api/metrics';
+const POLL_INTERVAL = 1000;          // ms
+const HISTORY_LEN  = 60;             // data points in chart
+const COST_PER_REQ = 0.000002;
+
+// ── State ─────────────────────────────────────────────────────
+const state = {
+  total:   0,
+  allowed: 0,
+  blocked: 0,
+  top_ips: [],
+  // for delta calculation
+  prev_total:   0,
+  prev_blocked: 0,
+  prev_allowed: 0,
+  // demo simulation mode
+  demoMode: false,
+  demoInterval: null,
+  // uptime
+  startTime: Date.now(),
+};
+
+// ── Chart setup ───────────────────────────────────────────────
+const chartLabels  = Array(HISTORY_LEN).fill('');
+const chartAllowed = Array(HISTORY_LEN).fill(0);
+const chartBlocked = Array(HISTORY_LEN).fill(0);
+
+const ctx = document.getElementById('traffic-chart').getContext('2d');
+const chart = new Chart(ctx, {
+  type: 'line',
+  data: {
+    labels: chartLabels,
+    datasets: [
+      {
+        label: 'Allowed',
+        data: chartAllowed,
+        borderColor: '#00ff88',
+        backgroundColor: 'rgba(0,255,136,0.07)',
+        borderWidth: 1.5,
+        pointRadius: 0,
+        fill: true,
+        tension: 0.4,
+      },
+      {
+        label: 'Blocked',
+        data: chartBlocked,
+        borderColor: '#ff3355',
+        backgroundColor: 'rgba(255,51,85,0.09)',
+        borderWidth: 1.5,
+        pointRadius: 0,
+        fill: true,
+        tension: 0.4,
+      },
+    ],
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    animation: { duration: 300 },
+    interaction: { intersect: false, mode: 'index' },
+    plugins: {
+      legend: {
+        labels: {
+          color: '#4a6a8a',
+          font: { family: 'Share Tech Mono', size: 11 },
+          boxWidth: 12,
+        }
+      },
+      tooltip: {
+        backgroundColor: '#080d18',
+        borderColor: '#1a2840',
+        borderWidth: 1,
+        titleColor: '#d0e8ff',
+        bodyColor: '#4a6a8a',
+        titleFont: { family: 'Share Tech Mono', size: 11 },
+      }
+    },
+    scales: {
+      x: {
+        ticks: { display: false },
+        grid:  { color: 'rgba(26,40,64,0.5)' },
+        border: { color: '#1a2840' },
+      },
+      y: {
+        beginAtZero: true,
+        ticks: {
+          color: '#4a6a8a',
+          font: { family: 'Share Tech Mono', size: 10 },
+          maxTicksLimit: 6,
+        },
+        grid:  { color: 'rgba(26,40,64,0.5)' },
+        border: { color: '#1a2840' },
+      }
+    }
+  }
+});
+
+// ── Clock & uptime ────────────────────────────────────────────
+function padZ(n) { return String(n).padStart(2, '0'); }
+
+function updateClock() {
+  const now = new Date();
+  document.getElementById('live-clock').textContent =
+    `${padZ(now.getHours())}:${padZ(now.getMinutes())}:${padZ(now.getSeconds())}`;
+
+  const elapsed = Math.floor((Date.now() - state.startTime) / 1000);
+  const h = Math.floor(elapsed / 3600);
+  const m = Math.floor((elapsed % 3600) / 60);
+  const s = elapsed % 60;
+  document.getElementById('uptime-val').textContent =
+    `${padZ(h)}:${padZ(m)}:${padZ(s)}`;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ── Render stat card with pop animation ───────────────────────
+function setStatValue(id, value) {
+  const el = document.getElementById(id);
+  const prev = parseInt(el.textContent.replace(/,/g, '')) || 0;
+  if (prev !== value) {
+    el.textContent = value.toLocaleString();
+    el.classList.remove('pop');
+    void el.offsetWidth; // reflow trick
+    el.classList.add('pop');
+  }
+}
+
+// ── Render IP table ───────────────────────────────────────────
+function renderIPTable(topIps) {
+  const tbody = document.getElementById('ip-table-body');
+
+  if (!topIps || topIps.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td style="color:var(--text-muted)">—</td>
+        <td style="color:var(--text-muted)">No traffic yet</td>
+        <td>—</td><td>—</td><td>—</td>
+      </tr>`;
+    return;
+  }
+
+  const maxReqs = Math.max(...topIps.map(ip => ip.requests), 1);
+
+  tbody.innerHTML = topIps.slice(0, 8).map((ip, i) => {
+    const pct = Math.round((ip.requests / maxReqs) * 100);
+    const statusBadge = ip.blocked_count > 0
+      ? `<span class="badge-blocked">BLOCKED</span>`
+      : `<span class="badge-active">ACTIVE</span>`;
+
+    return `
+      <tr>
+        <td style="color:var(--text-muted)">${i + 1}</td>
+        <td class="log-ip" style="font-family:var(--font-mono)">${ip.ip}</td>
+        <td style="font-family:var(--font-mono)">
+          ${ip.requests.toLocaleString()}
+          <div class="bar-mini"><div class="bar-mini-fill" style="width:${pct}%"></div></div>
+        </td>
+        <td style="color:var(--accent-red);font-family:var(--font-mono)">${ip.blocked_count || 0}</td>
+        <td>${statusBadge}</td>
+      </tr>`;
+  }).join('');
+}
+
+// ── Log panel ─────────────────────────────────────────────────
+const MAX_LOG_ENTRIES = 120;
+
+function addLog(type, msg) {
+  const logBody = document.getElementById('log-body');
+  const now = new Date();
+  const ts = `${padZ(now.getHours())}:${padZ(now.getMinutes())}:${padZ(now.getSeconds())}`;
+
+  const entry = document.createElement('div');
+  entry.className = `log-entry ${type}`;
+  entry.innerHTML = `<span class="log-time">[${ts}]</span> ${msg}`;
+  logBody.prepend(entry);
+
+  // Trim old entries
+  while (logBody.children.length > MAX_LOG_ENTRIES) {
+    logBody.removeChild(logBody.lastChild);
+  }
+}
+
+// ── Chart push ────────────────────────────────────────────────
+function pushToChart(allowedDelta, blockedDelta) {
+  chartAllowed.push(allowedDelta);
+  chartAllowed.shift();
+  chartBlocked.push(blockedDelta);
+  chartBlocked.shift();
+  chart.update('none'); // 'none' = skip animation for speed
+}
+
+// ── Render all metrics ────────────────────────────────────────
+function renderMetrics(data) {
+  const total   = data.total_requests   || 0;
+  const allowed = data.allowed_requests || 0;
+  const blocked = data.blocked_requests || 0;
+  const topIps  = data.top_ips          || [];
+
+  const dTotal   = total   - state.prev_total;
+  const dBlocked = blocked - state.prev_blocked;
+  const dAllowed = allowed - state.prev_allowed;
+
+  // Update state
+  state.total   = total;
+  state.allowed = allowed;
+  state.blocked = blocked;
+
+  // Stat cards
+  setStatValue('stat-total',   total);
+  setStatValue('stat-allowed', allowed);
+  setStatValue('stat-blocked', blocked);
+
+  document.getElementById('delta-total').textContent   = `+${dTotal} / sec`;
+  document.getElementById('delta-allowed').textContent = `+${dAllowed} / sec`;
+  document.getElementById('delta-blocked').textContent = `+${dBlocked} / sec`;
+
+  // Cost
+  const cost = blocked * COST_PER_REQ;
+  document.getElementById('cost-val').textContent      = `$${cost.toFixed(4)}`;
+  document.getElementById('cost-blocked-n').textContent = blocked.toLocaleString();
+
+  // Block rate
+  const blockRate = total > 0 ? Math.round((blocked / total) * 100) : 0;
+  document.getElementById('block-rate-val').textContent = `${blockRate}%`;
+
+  // Chart
+  pushToChart(Math.max(dAllowed, 0), Math.max(dBlocked, 0));
+
+  // IP table
+  renderIPTable(topIps);
+
+  // Log events
+  if (dBlocked > 0) {
+    const ip = topIps.length > 0 ? topIps[0].ip : '???';
+    addLog('blocked', `<span class="log-ip">${ip}</span> — ${dBlocked} request(s) blocked (429 Too Many Requests)`);
+  }
+  if (dTotal > 50 && dBlocked > dAllowed) {
+    addLog('warn', `High traffic rate detected — Token bucket depleting fast`);
+  }
+
+  // Threat banner
+  const banner = document.getElementById('threat-banner');
+  if (dBlocked > 10) {
+    banner.classList.add('visible');
+    document.getElementById('system-status').textContent = 'UNDER ATTACK';
+  } else if (dBlocked === 0) {
+    banner.classList.remove('visible');
+    document.getElementById('system-status').textContent = 'SYSTEM ACTIVE';
+  }
+
+  // Update prev
+  state.prev_total   = total;
+  state.prev_blocked = blocked;
+  state.prev_allowed = allowed;
+}
+
+// ── API polling ───────────────────────────────────────────────
+async function fetchMetrics() {
+  if (state.demoMode) return; // demo handles its own updates
+
+  try {
+    const res = await fetch(API_URL);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    renderMetrics(data);
+  } catch (err) {
+    // Backend not reachable — silently degrade
+    // (uncomment below to log connection errors)
+    // addLog('warn', `API unreachable: ${err.message} — Start FastAPI backend`);
+  }
+}
+
+// ── Demo / Simulation mode ────────────────────────────────────
+const DEMO_IPS = [
+  '192.168.1.104', '10.0.0.77', '203.0.113.42',
+  '198.51.100.99', '172.16.0.14', '185.220.101.5',
+  '91.108.4.200',  '45.33.32.156',
+];
+
+const demoState = {
+  total: 0, allowed: 0, blocked: 0,
+  ipMap: {},
+};
+
+function demoTick() {
+  const burstMode = demoState.total > 100; // escalate over time
+
+  // Pick random IPs — bias toward attacker IPs later
+  const numRequests = burstMode
+    ? Math.floor(Math.random() * 40) + 20
+    : Math.floor(Math.random() * 8) + 2;
+
+  const attackerIp = DEMO_IPS[0];
+
+  for (let i = 0; i < numRequests; i++) {
+    const ip = burstMode && Math.random() < 0.75
+      ? attackerIp
+      : DEMO_IPS[Math.floor(Math.random() * DEMO_IPS.length)];
+
+    if (!demoState.ipMap[ip]) {
+      demoState.ipMap[ip] = { ip, requests: 0, blocked_count: 0 };
+    }
+
+    demoState.total++;
+    demoState.ipMap[ip].requests++;
+
+    // Token bucket simulation: high-rate IPs get blocked
+    const ipData = demoState.ipMap[ip];
+    const blockThreshold = ip === attackerIp ? 15 : 50;
+    if (ipData.requests > blockThreshold && Math.random() < 0.85) {
+      demoState.blocked++;
+      ipData.blocked_count++;
+    } else {
+      demoState.allowed++;
+    }
+  }
+
+  // Build top_ips sorted by requests desc
+  const top_ips = Object.values(demoState.ipMap)
+    .sort((a, b) => b.requests - a.requests)
+    .slice(0, 8);
+
+  renderMetrics({
+    total_requests:   demoState.total,
+    allowed_requests: demoState.allowed,
+    blocked_requests: demoState.blocked,
+    top_ips,
+  });
+}
+
+function toggleDemo() {
+  const btn = document.getElementById('demo-btn');
+
+  if (state.demoMode) {
+    // Stop demo
+    clearInterval(state.demoInterval);
+    state.demoMode = false;
+    btn.textContent = '⚡ SIMULATE ATTACK';
+    btn.classList.remove('active');
+    addLog('warn', 'Attack simulation stopped. Monitoring live API.');
+    document.getElementById('threat-banner').classList.remove('visible');
+    document.getElementById('system-status').textContent = 'SYSTEM ACTIVE';
+  } else {
+    // Start demo
+    state.demoMode = true;
+    btn.textContent = '⛔ STOP SIMULATION';
+    btn.classList.add('active');
+    addLog('warn', 'DEMO MODE: Attack simulation started — no backend required');
+    addLog('blocked', `<span class="log-ip">${DEMO_IPS[0]}</span> — Flood attack beginning...`);
+    state.demoInterval = setInterval(demoTick, POLL_INTERVAL);
+  }
+}
+
+// ── Kick off polling ──────────────────────────────────────────
+addLog('allowed', 'Dashboard initialized. Polling <span style="color:var(--accent-blue)">/api/metrics</span>');
+addLog('allowed', 'Token Bucket rate limiter active. Threshold: 100 req/min per IP');
+
+setInterval(fetchMetrics, POLL_INTERVAL);
+fetchMetrics(); // immediate first call
+</script>
+</body>
+</html>
