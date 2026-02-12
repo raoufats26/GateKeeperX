@@ -1,10 +1,12 @@
 import requests
-import time
 import threading
+import time
 
 TARGET_URL = "http://127.0.0.1:8000/api/test"
-TOTAL_REQUESTS = 1000
-THREADS = 20  # number of parallel attackers
+
+WARMUP_REQUESTS = 30
+BURST_REQUESTS = 1200
+THREADS = 25
 
 
 allowed_count = 0
@@ -12,52 +14,61 @@ blocked_count = 0
 lock = threading.Lock()
 
 
-def send_requests(num_requests: int):
+def send_requests(total):
     global allowed_count, blocked_count
 
-    for _ in range(num_requests):
+    for _ in range(total):
         try:
-            response = requests.get(TARGET_URL)
+            r = requests.get(TARGET_URL)
 
             with lock:
-                if response.status_code == 200:
+                if r.status_code == 200:
                     allowed_count += 1
-                elif response.status_code == 429:
+                elif r.status_code == 429:
                     blocked_count += 1
-
-            print("Status:", response.status_code)
 
         except Exception as e:
             print("Request failed:", e)
 
 
-def main():
-    print("Starting attack simulation...\n")
-
-    start_time = time.time()
-
-    requests_per_thread = TOTAL_REQUESTS // THREADS
+def run_parallel(total_requests):
     threads = []
+    per_thread = total_requests // THREADS
 
     for _ in range(THREADS):
-        t = threading.Thread(
-            target=send_requests,
-            args=(requests_per_thread,)
-        )
+        t = threading.Thread(target=send_requests, args=(per_thread,))
         t.start()
         threads.append(t)
 
     for t in threads:
         t.join()
 
-    duration = time.time() - start_time
+
+def main():
+    global allowed_count, blocked_count
+
+    print("\n--- Normal Traffic Warmup ---")
+    run_parallel(WARMUP_REQUESTS)
+
+    print("Warmup complete.")
+    print("\nAttack starting in 3 seconds...\n")
+
+    time.sleep(3)
+
+    print("Launching simulated HTTP flood...\n")
+
+    start = time.time()
+
+    run_parallel(BURST_REQUESTS)
+
+    duration = time.time() - start
 
     print("\n===== Attack Finished =====")
-    print("Total Requests Sent:", TOTAL_REQUESTS)
+    print("Total Requests:", WARMUP_REQUESTS + BURST_REQUESTS)
     print("Allowed:", allowed_count)
     print("Blocked:", blocked_count)
     print("Duration:", round(duration, 2), "seconds")
-    print("Requests/sec:", round(TOTAL_REQUESTS / duration, 2))
+    print("Requests/sec:", round(BURST_REQUESTS / duration, 2))
 
 
 if __name__ == "__main__":
