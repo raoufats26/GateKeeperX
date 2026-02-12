@@ -54,7 +54,7 @@
       </div>
       <div class="hdr-stat">
         <span class="hdr-stat-l">VERSION</span>
-        <span class="hdr-stat-v">1.0.0</span>
+        <span class="hdr-stat-v">2.0.0</span>
       </div>
       <button class="btn btn-ghost" id="resetBtn">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -74,6 +74,8 @@
       <span id="tbText">SYSTEM SECURE — No active threats detected</span>
       <span class="tb-sep">|</span>
       <span id="tbTime">--:--:--</span>
+      <span class="tb-sep">|</span>
+      <span class="defense-mode-badge" id="defenseBadge">NORMAL MODE</span>
     </div>
   </div>
 
@@ -172,6 +174,122 @@
         <div class="kpi-bar-line gold-a" id="kpiBarCost"></div>
       </div>
 
+      <div class="kpi-card" id="kpi-hourly">
+        <div class="kpi-accent purple-a"></div>
+        <div class="kpi-head">
+          <span class="kpi-label">PROJECTED HOURLY LOSS</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#b388ff" stroke-width="1.5" class="kpi-icon">
+            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+          </svg>
+        </div>
+        <div class="kpi-val purple" id="projectedHourly">$0.000000</div>
+        <div class="kpi-foot">
+          <span class="kpi-sub-l">WITHOUT PROTECTION</span>
+          <span class="kpi-sub-v purple" id="hourlyReqs">0 req/hr</span>
+        </div>
+        <div class="kpi-bar-line purple-a" id="kpiBarHourly"></div>
+      </div>
+
+      <div class="kpi-card" id="kpi-daily">
+        <div class="kpi-accent orange-a"></div>
+        <div class="kpi-head">
+          <span class="kpi-label">PROJECTED DAILY LOSS</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ff9800" stroke-width="1.5" class="kpi-icon">
+            <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+          </svg>
+        </div>
+        <div class="kpi-val orange" id="projectedDaily">$0.000000</div>
+        <div class="kpi-foot">
+          <span class="kpi-sub-l">24-HOUR PROJECTION</span>
+          <span class="kpi-sub-v orange" id="dailyReqs">0 req/day</span>
+        </div>
+        <div class="kpi-bar-line orange-a" id="kpiBarDaily"></div>
+      </div>
+
+    </div>
+
+    <!-- Row 1.5: NEW PHASE 4 - Risk Score & Defense Mode -->
+    <div class="kpi-row phase4-row">
+      
+      <!-- Risk Score Gauge -->
+      <div class="panel risk-panel">
+        <div class="panel-hdr">
+          <span class="panel-title">AVERAGE RISK SCORE</span>
+          <span class="badge" id="riskBadge">ANALYZING</span>
+        </div>
+        <div class="risk-body">
+          <div class="risk-gauge-wrap">
+            <svg class="risk-gauge" viewBox="0 0 200 120">
+              <!-- Gauge arc background -->
+              <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="rgba(0,245,196,0.1)" stroke-width="12"/>
+              <!-- Gauge arc fill -->
+              <path id="riskArc" d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="#00f5c4" stroke-width="12" stroke-dasharray="251.2" stroke-dashoffset="251.2"/>
+              <!-- Center value -->
+              <text x="100" y="85" class="risk-main" id="riskScore">0</text>
+              <text x="100" y="105" class="risk-sub">/ 100</text>
+            </svg>
+          </div>
+          <div class="risk-factors">
+            <div class="rf-item">
+              <span class="rf-label">BURST INTENSITY</span>
+              <span class="rf-val cyan">40 pts</span>
+            </div>
+            <div class="rf-item">
+              <span class="rf-label">REPEAT OFFENSES</span>
+              <span class="rf-val red">40 pts</span>
+            </div>
+            <div class="rf-item">
+              <span class="rf-label">RATE ACCELERATION</span>
+              <span class="rf-val gold">20 pts</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Defense Mode Panel -->
+      <div class="panel defense-panel">
+        <div class="panel-hdr">
+          <span class="panel-title">ADAPTIVE DEFENSE MODE</span>
+          <span class="badge green-badge" id="defenseStatusBadge">ACTIVE</span>
+        </div>
+        <div class="defense-body">
+          <div class="defense-current">
+            <div class="defense-icon" id="defenseIcon">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              </svg>
+            </div>
+            <div class="defense-label" id="defenseModeLabel">NORMAL MODE</div>
+            <div class="defense-desc" id="defenseModeDesc">Standard protection active</div>
+          </div>
+          <div class="defense-config" id="defenseConfig">
+            <div class="dc-row">
+              <span class="dc-label">REQUEST LIMIT</span>
+              <span class="dc-val cyan" id="cfgLimit">20 req / 5s</span>
+            </div>
+            <div class="dc-row">
+              <span class="dc-label">BLOCK DURATION</span>
+              <span class="dc-val gold" id="cfgBlock">60 seconds</span>
+            </div>
+            <div class="dc-row">
+              <span class="dc-label">OFFENDER MULTIPLIER</span>
+              <span class="dc-val red">1.5x escalation</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Top Offenders -->
+      <div class="panel offenders-panel">
+        <div class="panel-hdr">
+          <span class="panel-title">REPEAT OFFENDERS</span>
+          <span class="panel-hint" id="offenderCount">0 tracked</span>
+        </div>
+        <div class="offenders-list" id="offendersList">
+          <div class="list-empty">No repeat offenders</div>
+        </div>
+      </div>
+
     </div>
 
     <!-- Row 2: Threat + Efficiency + Activity -->
@@ -240,15 +358,15 @@
           <div class="eff-stats">
             <div class="eff-stat">
               <span class="es-label">ALGORITHM</span>
-              <span class="es-val cyan">SLIDING WINDOW</span>
+              <span class="es-val cyan">ADAPTIVE</span>
             </div>
             <div class="eff-stat">
               <span class="es-label">LIMIT</span>
-              <span class="es-val cyan">20 req / 5s</span>
+              <span class="es-val cyan" id="currentLimit">20 req / 5s</span>
             </div>
             <div class="eff-stat">
               <span class="es-label">BLOCK DURATION</span>
-              <span class="es-val cyan">60 seconds</span>
+              <span class="es-val cyan" id="currentBlockTime">60 seconds</span>
             </div>
           </div>
         </div>
@@ -491,9 +609,9 @@
 
   <!-- Footer -->
   <footer class="footer">
-    <span>SENTINELSHIELD v1.0.0</span>
+    <span>SENTINELSHIELD v2.0.0</span>
     <span class="fsep">·</span>
-    <span>Sliding Window · IP Fingerprinting · Cost Simulation</span>
+    <span>Adaptive Intelligence · Risk Scoring · Defense Modes · Financial Projections</span>
     <span class="fsep">·</span>
     <span id="footerTime">--:--:--</span>
   </footer>

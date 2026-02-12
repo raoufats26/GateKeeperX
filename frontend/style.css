@@ -445,3 +445,176 @@ body.attacking .eff-num     { color:var(--red); text-shadow:0 0 30px rgba(255,59
   .kpi-val { font-size:28px; }
   .header-right .hdr-stat { display:none; }
 }
+
+/* ════════════════════════════════════════════════════════
+   PHASE 4 NEW STYLES - Adaptive Intelligence UI
+════════════════════════════════════════════════════════ */
+
+/* ── Defense Mode Badge in Threat Banner ───────────── */
+.defense-mode-badge {
+  font-family:var(--mono); font-size:9px; letter-spacing:1.2px;
+  padding:4px 10px; border-radius:var(--r);
+  background:rgba(0,245,196,.08); border:1px solid rgba(0,245,196,.25);
+  color:var(--cyan); font-weight:600;
+}
+.defense-mode-badge.elevated {
+  background:rgba(255,193,7,.08); border-color:rgba(255,193,7,.3);
+  color:var(--gold);
+}
+.defense-mode-badge.defense {
+  background:rgba(255,59,92,.08); border-color:rgba(255,59,92,.3);
+  color:var(--red);
+}
+
+/* ── New Color Accents ───────────────────────────── */
+:root {
+  --purple: #b388ff;
+  --purple-a: rgba(179,136,255,.5);
+  --orange: #ff9800;
+  --orange-a: rgba(255,152,0,.5);
+}
+.kpi-accent.purple-a { background:var(--purple-a); }
+.kpi-accent.orange-a { background:var(--orange-a); }
+.kpi-val.purple { color:var(--purple); }
+.kpi-val.orange { color:var(--orange); }
+.kpi-sub-v.purple { color:var(--purple); }
+.kpi-sub-v.orange { color:var(--orange); }
+.kpi-bar-line.purple-a { background:var(--purple-a); }
+.kpi-bar-line.orange-a { background:var(--orange-a); }
+
+/* ── Phase 4 Row ───────────────────────────────── */
+.phase4-row {
+  display:grid; grid-template-columns:repeat(3,1fr); gap:var(--gap);
+  margin-bottom:var(--gap);
+}
+
+/* ── Risk Score Panel ───────────────────────────── */
+.risk-panel {
+  background:var(--card); border-radius:var(--r);
+  border:1px solid var(--border); padding:var(--pad);
+}
+.risk-body {
+  display:flex; flex-direction:column; gap:16px; padding:10px 0;
+}
+.risk-gauge-wrap {
+  display:flex; justify-content:center; align-items:center;
+}
+.risk-gauge {
+  width:200px; height:120px;
+}
+#riskArc {
+  stroke:var(--cyan); stroke-linecap:round;
+  transition:stroke-dashoffset .6s ease, stroke .6s ease;
+}
+.risk-main {
+  font-family:var(--head); font-size:40px; font-weight:700;
+  fill:var(--cyan); text-anchor:middle;
+}
+.risk-sub {
+  font-family:var(--mono); font-size:11px; letter-spacing:1px;
+  fill:var(--txt-d); text-anchor:middle;
+}
+.risk-factors {
+  display:flex; flex-direction:column; gap:8px;
+}
+.rf-item {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:6px 8px; background:rgba(0,245,196,.03);
+  border-radius:4px; border:1px solid rgba(0,245,196,.08);
+}
+.rf-label {
+  font-family:var(--mono); font-size:9px; letter-spacing:1px;
+  color:var(--txt-d);
+}
+.rf-val {
+  font-family:var(--mono); font-size:10px; font-weight:600;
+  letter-spacing:1px;
+}
+
+/* ── Defense Mode Panel ───────────────────────────── */
+.defense-panel {
+  background:var(--card); border-radius:var(--r);
+  border:1px solid var(--border); padding:var(--pad);
+}
+.defense-body {
+  padding:14px 0;
+}
+.defense-current {
+  text-align:center; margin-bottom:20px;
+}
+.defense-icon {
+  margin:0 auto 12px; width:48px; height:48px;
+  color:var(--cyan); transition:color .4s ease;
+}
+.defense-icon.elevated { color:var(--gold); }
+.defense-icon.defense { color:var(--red); }
+.defense-label {
+  font-family:var(--head); font-size:18px; font-weight:700;
+  letter-spacing:2px; color:var(--cyan); margin-bottom:4px;
+  transition:color .4s ease;
+}
+.defense-label.elevated { color:var(--gold); }
+.defense-label.defense { color:var(--red); }
+.defense-desc {
+  font-family:var(--mono); font-size:10px; color:var(--txt-d);
+  letter-spacing:1px;
+}
+.defense-config {
+  display:flex; flex-direction:column; gap:8px;
+}
+.dc-row {
+  display:flex; justify-content:space-between; align-items:center;
+  padding:8px; background:rgba(0,245,196,.02);
+  border-radius:4px; border:1px solid rgba(0,245,196,.06);
+}
+.dc-label {
+  font-family:var(--mono); font-size:9px; letter-spacing:1px;
+  color:var(--txt-d);
+}
+.dc-val {
+  font-family:var(--mono); font-size:10px; font-weight:600;
+  letter-spacing:1px;
+}
+
+/* ── Offenders Panel ───────────────────────────── */
+.offenders-panel {
+  background:var(--card); border-radius:var(--r);
+  border:1px solid var(--border); padding:var(--pad);
+}
+.offenders-list {
+  max-height:200px; overflow-y:auto; padding:8px 0;
+}
+.offender-item {
+  padding:8px 10px; margin-bottom:6px;
+  background:rgba(255,59,92,.04);
+  border-left:3px solid var(--red);
+  border-radius:4px; display:flex; justify-content:space-between;
+  align-items:center;
+}
+.off-ip {
+  font-family:var(--mono); font-size:10px; color:var(--txt);
+  letter-spacing:1px;
+}
+.off-count {
+  font-family:var(--mono); font-size:10px; font-weight:600;
+  color:var(--red); letter-spacing:1px;
+}
+.off-badge {
+  padding:2px 8px; background:rgba(255,59,92,.15);
+  border-radius:3px; font-size:8px; color:var(--red);
+  font-weight:600; letter-spacing:1px;
+}
+
+/* ── Responsive Phase 4 ───────────────────────────── */
+@media(max-width:1300px) {
+  .kpi-row { grid-template-columns:repeat(3,1fr); }
+  .phase4-row { grid-template-columns:1fr 1fr; }
+  .offenders-panel { grid-column:1/-1; }
+}
+@media(max-width:900px) {
+  .kpi-row { grid-template-columns:repeat(2,1fr); }
+  .phase4-row { grid-template-columns:1fr; }
+}
+@media(max-width:580px) {
+  .kpi-row { grid-template-columns:1fr; }
+}

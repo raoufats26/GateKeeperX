@@ -87,6 +87,27 @@ const E = {
   // Graph
   canvas:       $("reqGraph"),
 
+  // Phase 4 Elements
+  defenseBadge:      $("defenseBadge"),
+  projectedHourly:   $("projectedHourly"),
+  projectedDaily:    $("projectedDaily"),
+  hourlyReqs:        $("hourlyReqs"),
+  dailyReqs:         $("dailyReqs"),
+  kpiBarHourly:      $("kpiBarHourly"),
+  kpiBarDaily:       $("kpiBarDaily"),
+  riskScore:         $("riskScore"),
+  riskArc:           $("riskArc"),
+  riskBadge:         $("riskBadge"),
+  defenseModeLabel:  $("defenseModeLabel"),
+  defenseModeDesc:   $("defenseModeDesc"),
+  defenseIcon:       $("defenseIcon"),
+  cfgLimit:          $("cfgLimit"),
+  cfgBlock:          $("cfgBlock"),
+  offendersList:     $("offendersList"),
+  offenderCount:     $("offenderCount"),
+  currentLimit:      $("currentLimit"),
+  currentBlockTime:  $("currentBlockTime"),
+
   // Footer
   footerTime:   $("footerTime"),
   toastStack:   $("toastStack"),
@@ -234,6 +255,16 @@ function updateDashboard(d) {
     threat_level                 = "LOW",
     attack_detected              = false,
     protection_efficiency_percent = 0,
+    // Phase 4 new fields
+    defense_mode                 = "NORMAL",
+    mode_config                  = {},
+    risk_analytics               = {},
+    projected_hourly_damage      = 0,
+    projected_hourly_savings     = 0,
+    projected_hourly_requests    = 0,
+    projected_daily_damage       = 0,
+    projected_daily_savings      = 0,
+    projected_daily_requests     = 0,
   } = d;
 
   /* KPI counters */
@@ -243,11 +274,21 @@ function updateDashboard(d) {
   setNum(E.blockedReq, blocked_requests);
   setNum(E.costSaved,  estimated_cost_saved, v => "$" + v.toFixed(8));
 
+  /* Phase 4: Projected losses */
+  if (E.projectedHourly) {
+    setNum(E.projectedHourly, projected_hourly_damage, v => "$" + v.toFixed(6));
+    setNum(E.projectedDaily, projected_daily_damage, v => "$" + v.toFixed(6));
+    if (E.hourlyReqs) E.hourlyReqs.textContent = Math.round(projected_hourly_requests).toLocaleString() + " req/hr";
+    if (E.dailyReqs) E.dailyReqs.textContent = Math.round(projected_daily_requests).toLocaleString() + " req/day";
+  }
+
   /* Flash bars on new traffic */
   if (total_requests   > prev.total)   { flashBar(E.kpiBarTotal);   }
   if (allowed_requests > prev.allowed) { flashBar(E.kpiBarAllowed); }
   if (blocked_requests > prev.blocked) { flashBar(E.kpiBarBlocked); }
   if (estimated_cost_saved > 0)        { flashBar(E.kpiBarCost);    }
+  if (projected_hourly_damage > 0 && E.kpiBarHourly) { flashBar(E.kpiBarHourly); }
+  if (projected_daily_damage > 0 && E.kpiBarDaily) { flashBar(E.kpiBarDaily); }
 
   /* RPS */
   const delta = Math.max(0, total_requests - prevTotalForRps);
@@ -268,6 +309,15 @@ function updateDashboard(d) {
 
   /* Threat */
   updateThreat(threat_level, attack_detected, blocked_requests);
+
+  /* Phase 4: Defense Mode */
+  updateDefenseMode(defense_mode, mode_config);
+
+  /* Phase 4: Risk Score */
+  updateRiskScore(risk_analytics);
+
+  /* Phase 4: Offenders */
+  updateOffenders(risk_analytics);
 
   /* Blocked IPs */
   renderBlockedIps(active_blocked_ips);
@@ -714,3 +764,114 @@ function esc(s) {
   // Pre-load health on summary tab
   fetchHealth();
 })();
+
+/* ═══════════════════════════════════════════════════════
+   PHASE 4 UPDATE FUNCTIONS
+════════════════════════════════════════════════════════ */
+
+/* ─── Defense Mode ────────────────────────────────── */
+function updateDefenseMode(mode, config) {
+  if (!E.defenseBadge) return;
+  
+  // Update banner badge
+  E.defenseBadge.textContent = mode + " MODE";
+  E.defenseBadge.className = "defense-mode-badge";
+  if (mode === "ELEVATED") E.defenseBadge.className += " elevated";
+  if (mode === "DEFENSE") E.defenseBadge.className += " defense";
+  
+  // Update defense panel
+  if (E.defenseModeLabel) {
+    E.defenseModeLabel.textContent = mode + " MODE";
+    E.defenseModeLabel.className = "defense-label";
+    if (mode === "ELEVATED") E.defenseModeLabel.className += " elevated";
+    if (mode === "DEFENSE") E.defenseModeLabel.className += " defense";
+  }
+  
+  if (E.defenseIcon) {
+    E.defenseIcon.className = "defense-icon";
+    if (mode === "ELEVATED") E.defenseIcon.className += " elevated";
+    if (mode === "DEFENSE") E.defenseIcon.className += " defense";
+  }
+  
+  if (E.defenseModeDesc) {
+    const descs = {
+      "NORMAL": "Standard protection active",
+      "ELEVATED": "Enhanced protection - attack detected",
+      "DEFENSE": "Maximum protection - under heavy attack"
+    };
+    E.defenseModeDesc.textContent = descs[mode] || "Adaptive protection active";
+  }
+  
+  // Update config display
+  if (config && config.request_limit) {
+    if (E.cfgLimit) {
+      E.cfgLimit.textContent = `${config.request_limit} req / ${config.window_seconds}s`;
+    }
+    if (E.cfgBlock) {
+      E.cfgBlock.textContent = `${config.base_block_time} seconds`;
+    }
+    // Update efficiency panel limits
+    if (E.currentLimit) {
+      E.currentLimit.textContent = `${config.request_limit} req / ${config.window_seconds}s`;
+    }
+    if (E.currentBlockTime) {
+      E.currentBlockTime.textContent = `${config.base_block_time} seconds`;
+    }
+  }
+}
+
+/* ─── Risk Score ────────────────────────────────── */
+function updateRiskScore(analytics) {
+  if (!E.riskScore || !analytics) return;
+  
+  const avgRisk = analytics.average_risk_score || 0;
+  
+  // Update score number
+  setNum(E.riskScore, avgRisk, v => Math.round(v));
+  
+  // Update gauge arc (251.2 = circumference of 80px radius semicircle)
+  const RISK_CIRC = 251.2;
+  const offset = RISK_CIRC - (avgRisk / 100) * RISK_CIRC;
+  E.riskArc.style.strokeDashoffset = offset;
+  
+  // Color based on risk level
+  if (avgRisk < 30) {
+    E.riskArc.style.stroke = "#00e676"; // green
+    if (E.riskBadge) E.riskBadge.textContent = "LOW RISK";
+  } else if (avgRisk < 70) {
+    E.riskArc.style.stroke = "#ffc400"; // gold
+    if (E.riskBadge) E.riskBadge.textContent = "MODERATE";
+  } else {
+    E.riskArc.style.stroke = "#ff3b5c"; // red
+    if (E.riskBadge) E.riskBadge.textContent = "HIGH RISK";
+  }
+}
+
+/* ─── Offenders List ────────────────────────────── */
+function updateOffenders(analytics) {
+  if (!E.offendersList || !analytics) return;
+  
+  const offenders = analytics.top_offenders || [];
+  const total = analytics.total_repeat_offenders || 0;
+  
+  if (E.offenderCount) {
+    E.offenderCount.textContent = `${total} tracked`;
+  }
+  
+  if (offenders.length === 0) {
+    E.offendersList.innerHTML = '<div class="list-empty">No repeat offenders</div>';
+    return;
+  }
+  
+  const html = offenders.map(o => `
+    <div class="offender-item">
+      <span class="off-ip">${o.ip}</span>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <span class="off-badge">${o.offense_count}x OFFENSES</span>
+        <span class="off-count">${o.offense_count}</span>
+      </div>
+    </div>
+  `).join("");
+  
+  E.offendersList.innerHTML = html;
+}
