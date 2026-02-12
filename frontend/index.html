@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SentinelShield Dashboard</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<header>
+    <h1>🛡 SentinelShield: Real-Time Protection</h1>
+</header>
+
+<section class="stats">
+    <div class="card">
+        <h2 id="totalRequests">0</h2>
+        <p>Total Requests</p>
+    </div>
+    <div class="card danger">
+        <h2 id="blockedRequests">0</h2>
+        <p>Blocked Requests</p>
+    </div>
+    <div class="card success">
+        <h2 id="allowedRequests">0</h2>
+        <p>Allowed Requests</p>
+    </div>
+    <div class="card money">
+        <h2 id="costSaved">$0.00</h2>
+        <p>Estimated Cost Saved</p>
+    </div>
+</section>
+
+<section class="chart-container">
+    <canvas id="trafficChart"></canvas>
+</section>
+
+<section>
+    <h3>Top Attacking IPs</h3>
+    <table id="topIpsTable">
+        <thead>
+            <tr>
+                <th>IP Address</th>
+                <th>Requests</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+</section>
+
+<script src="js/api.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
