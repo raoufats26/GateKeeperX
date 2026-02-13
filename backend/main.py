@@ -24,7 +24,7 @@ PROTECTED_BACKEND_URL = "http://127.0.0.1:9000"
 PROXY_TIMEOUT = 30.0  # seconds
 
 app = FastAPI(
-    title="SentinelShield WAF",
+    title="GateKeeperX WAF",
     description="Reverse Proxy SaaS WAF - Application-Layer Financial DoS Protection",
     version="2.0.0"
 )
@@ -47,7 +47,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
-logger = logging.getLogger("sentinelshield")
+logger = logging.getLogger("gatekeeperx")
 
 # ========================================
 # HTTP CLIENT FOR PROXYING
@@ -63,7 +63,7 @@ async def startup_event():
         timeout=PROXY_TIMEOUT,
         follow_redirects=False
     )
-    logger.info("🛡️  SentinelShield WAF initialized")
+    logger.info("🛡️  GateKeeperX WAF initialized")
     logger.info(f"🔗 Protected backend: {PROTECTED_BACKEND_URL}")
     logger.info(f"📊 Redis available: {REDIS_AVAILABLE}")
 
@@ -74,7 +74,7 @@ async def shutdown_event():
     global http_client
     if http_client:
         await http_client.aclose()
-    logger.info("🛡️  SentinelShield WAF shutdown")
+    logger.info("🛡️  GateKeeperX WAF shutdown")
 
 
 # ========================================
@@ -85,7 +85,7 @@ async def global_exception_handler(request: Request, exc: Exception):
     logger.error(f"Unhandled error: {exc}")
     return JSONResponse(
         status_code=500,
-        content={"detail": "SentinelShield internal protection error"}
+        content={"detail": "GateKeeperX internal protection error"}
     )
 
 
@@ -103,10 +103,10 @@ def root():
 # ========================================
 @app.get("/health")
 def health_check():
-    """SentinelShield health check"""
+    """GateKeeperX health check"""
     return {
         "status": "healthy",
-        "service": "SentinelShield WAF",
+        "service": "GateKeeperX WAF",
         "version": "2.0.0",
         "mode": "reverse_proxy",
         "redis_available": REDIS_AVAILABLE
@@ -167,12 +167,12 @@ async def reverse_proxy(request: Request, path: str):
         return JSONResponse(
             status_code=429,
             content={
-                "detail": "Too Many Requests - Blocked by SentinelShield WAF",
-                "service": "SentinelShield",
+                "detail": "Too Many Requests - Blocked by GateKeeperX WAF",
+                "service": "GateKeeperX",
                 "blocked": True
             },
             headers={
-                "X-SentinelShield": "Blocked",
+                "X-GateKeeperX": "Blocked",
                 "X-Rate-Limit-Exceeded": "true"
             }
         )
@@ -192,9 +192,9 @@ async def reverse_proxy(request: Request, path: str):
         for header in headers_to_remove:
             headers.pop(header, None)
         
-        # Add SentinelShield headers
+        # Add GateKeeperX headers
         headers["X-Forwarded-For"] = ip
-        headers["X-SentinelShield-Protected"] = "true"
+        headers["X-GateKeeperX-Protected"] = "true"
         headers["X-Original-IP"] = ip
         
         # Get request body if present
@@ -221,8 +221,8 @@ async def reverse_proxy(request: Request, path: str):
             status_code=response.status_code,
             content=response.json() if response.headers.get("content-type", "").startswith("application/json") else {"data": response.text},
             headers={
-                "X-SentinelShield": "Protected",
-                "X-Protected-By": "SentinelShield-WAF-v2.0"
+                "X-GateKeeperX": "Protected",
+                "X-Protected-By": "GateKeeperX-WAF-v2.0"
             }
         )
         
@@ -234,7 +234,7 @@ async def reverse_proxy(request: Request, path: str):
             status_code=502,
             content={
                 "detail": "Protected backend unavailable",
-                "service": "SentinelShield",
+                "service": "GateKeeperX",
                 "error": "backend_unreachable"
             }
         )
@@ -247,7 +247,7 @@ async def reverse_proxy(request: Request, path: str):
             status_code=504,
             content={
                 "detail": "Protected backend timeout",
-                "service": "SentinelShield",
+                "service": "GateKeeperX",
                 "error": "backend_timeout"
             }
         )
@@ -260,7 +260,7 @@ async def reverse_proxy(request: Request, path: str):
             status_code=500,
             content={
                 "detail": "Proxy error",
-                "service": "SentinelShield",
+                "service": "GateKeeperX",
                 "error": str(e)
             }
         )
@@ -286,12 +286,12 @@ async def test(request: Request):
         log_request(blocked=True, ip=ip)
         return JSONResponse(
             status_code=429,
-            content={"detail": "Too Many Requests - Blocked by SentinelShield"}
+            content={"detail": "Too Many Requests - Blocked by GateKeeperX"}
         )
 
     log_request(blocked=False, ip=ip)
     response = JSONResponse(content={"status": "Request allowed"})
-    response.headers["X-SentinelShield"] = "Protected"
+    response.headers["X-GateKeeperX"] = "Protected"
     return response
 
 
@@ -362,7 +362,7 @@ def protection_summary():
         efficiency = round((blocked / total) * 100, 2)
 
     return {
-        "system_name": "SentinelShield WAF",
+        "system_name": "GateKeeperX WAF",
         "version": "2.0",
         "mode": "reverse_proxy",
         "requests_processed": total,
@@ -387,7 +387,7 @@ def api_status():
     return {
         "status": "protected",
         "active_blocked_ips": len(blocked_ips),
-        "shield": "SentinelShield WAF v2.0",
+        "shield": "GateKeeperX WAF v2.0",
         "defense_mode": defense_mode,
         "mode": "reverse_proxy",
         "backend": PROTECTED_BACKEND_URL,

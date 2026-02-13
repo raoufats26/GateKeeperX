@@ -1,6 +1,6 @@
 """
 Protected Backend Server - Mock Customer Application
-This simulates a customer's real backend that SentinelShield protects.
+This simulates a customer's real backend that GateKeeperX protects.
 """
 
 from fastapi import FastAPI, Request
@@ -10,7 +10,7 @@ import random
 
 app = FastAPI(
     title="Protected Bank API",
-    description="Mock customer backend protected by SentinelShield",
+    description="Mock customer backend protected by GateKeeperX",
     version="1.0.0"
 )
 
@@ -32,7 +32,7 @@ def root():
     return {
         "service": "bank-api",
         "status": "operational",
-        "message": "Protected by SentinelShield WAF",
+        "message": "Protected by GateKeeperX WAF",
         "version": "1.0.0"
     }
 
@@ -147,5 +147,5 @@ def backend_metrics():
 if __name__ == "__main__":
     import uvicorn
     print("🏦 Protected Bank API starting on port 9000...")
-    print("⚠️  This server should be protected by SentinelShield")
+    print("⚠️  This server should be protected by GateKeeperX")
     uvicorn.run(app, host="127.0.0.1", port=9000, log_level="info")

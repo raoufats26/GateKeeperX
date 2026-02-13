@@ -1,5 +1,5 @@
 """
-Multi-Vector Attack Simulator for SentinelShield WAF
+Multi-Vector Attack Simulator for GateKeeperX WAF
 Tests both legacy endpoint and new reverse proxy
 """
 
@@ -96,7 +96,7 @@ def main():
     global allowed_count, blocked_count, backend_errors
 
     print("\n" + "="*60)
-    print("  SentinelShield WAF - Attack Simulator")
+    print("  GateKeeperX WAF - Attack Simulator")
     print("="*60)
     print("\nSelect attack target:\n")
     

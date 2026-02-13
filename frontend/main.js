@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════
-   SENTINELSHIELD  ·  main.js
+   GATEKEEPERX  ·  main.js
    Wires every backend route:
      GET  /health
      GET  /api/test        ← attack simulator target
@@ -754,7 +754,7 @@ function esc(s) {
   E.activityFeed.innerHTML = `
     <div class="feed-entry sys">
       <span class="feed-time">${ts}</span>
-      <span>SENTINELSHIELD DASHBOARD ONLINE</span>
+      <span>GATEKEEPERX DASHBOARD ONLINE</span>
     </div>`;
 
   // Start polling /api/metrics every second
