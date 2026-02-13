@@ -11,7 +11,9 @@ from backend.rate_limiter import (
     get_blocked_ips, 
     get_risk_analytics,
     get_defense_mode_status,
-    reset_rate_limiter
+    reset_rate_limiter,
+    get_redis_stats,  # NEW: For debugging
+    REDIS_AVAILABLE  # NEW: For status checks
 )
 from backend.metrics import log_request, get_metrics, reset_metrics
 
@@ -63,6 +65,7 @@ async def startup_event():
     )
     logger.info("🛡️  SentinelShield WAF initialized")
     logger.info(f"🔗 Protected backend: {PROTECTED_BACKEND_URL}")
+    logger.info(f"📊 Redis available: {REDIS_AVAILABLE}")
 
 
 @app.on_event("shutdown")
@@ -105,12 +108,34 @@ def health_check():
         "status": "healthy",
         "service": "SentinelShield WAF",
         "version": "2.0.0",
-        "mode": "reverse_proxy"
+        "mode": "reverse_proxy",
+        "redis_available": REDIS_AVAILABLE
     }
 
 
 # ========================================
-# REVERSE PROXY ENDPOINT (NEW!)
+# 🆕 REDIS DEBUG ENDPOINT
+# ========================================
+@app.get("/debug/redis")
+def debug_redis():
+    """
+    DEBUG ENDPOINT - Check Redis connection and keys
+    
+    Returns all Redis keys and statistics for debugging
+    """
+    redis_stats = get_redis_stats()
+    
+    return {
+        "redis_status": "connected" if redis_stats.get("available") else "disconnected",
+        "redis_available": REDIS_AVAILABLE,
+        "total_keys": redis_stats.get("total_keys", 0),
+        "sample_keys": redis_stats.get("keys", []),
+        "message": "Redis is working!" if redis_stats.get("available") else "Redis connection failed - using fallback storage"
+    }
+
+
+# ========================================
+# REVERSE PROXY ENDPOINT
 # ========================================
 @app.api_route("/proxy/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
 async def reverse_proxy(request: Request, path: str):
@@ -310,12 +335,14 @@ def metrics():
         "top_offenders": risk_analytics["top_offenders"],
         "average_risk_score": risk_analytics["average_risk_score"],
         "total_tracked_ips": risk_analytics["total_tracked_ips"],
-        "total_repeat_offenders": risk_analytics["total_repeat_offenders"]
+        "total_repeat_offenders": risk_analytics["total_repeat_offenders"],
+        "redis_available": risk_analytics.get("redis_available", False)
     }
     
     # Add WAF-specific metadata
     data["waf_mode"] = "reverse_proxy"
     data["protected_backend"] = PROTECTED_BACKEND_URL
+    data["redis_available"] = REDIS_AVAILABLE
 
     return data
 
@@ -343,7 +370,8 @@ def protection_summary():
         "protection_efficiency_percent": efficiency,
         "estimated_cost_saved": data["estimated_cost_saved"],
         "defense_mode": get_defense_mode_status(),
-        "protected_backend": PROTECTED_BACKEND_URL
+        "protected_backend": PROTECTED_BACKEND_URL,
+        "redis_available": REDIS_AVAILABLE
     }
 
 
@@ -362,7 +390,8 @@ def api_status():
         "shield": "SentinelShield WAF v2.0",
         "defense_mode": defense_mode,
         "mode": "reverse_proxy",
-        "backend": PROTECTED_BACKEND_URL
+        "backend": PROTECTED_BACKEND_URL,
+        "redis_available": REDIS_AVAILABLE
     }
 
 
@@ -380,7 +409,8 @@ def reset():
         "status": "System reset successfully",
         "metrics": "cleared",
         "rate_limiter": "cleared",
-        "defense_mode": "NORMAL"
+        "defense_mode": "NORMAL",
+        "redis_available": REDIS_AVAILABLE
     }
 
 
