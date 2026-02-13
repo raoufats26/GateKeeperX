@@ -1,0 +1,243 @@
+╔══════════════════════════════════════════════════════════════╗
+║                                                              ║
+║         🛡️  SENTINELSHIELD v2.0 - QUICK REFERENCE  🛡️        ║
+║              Reverse Proxy SaaS WAF                          ║
+║                                                              ║
+╚══════════════════════════════════════════════════════════════╝
+
+┌──────────────────────────────────────────────────────────────┐
+│ 🚀 INSTANT START (3 COMMANDS)                                │
+└──────────────────────────────────────────────────────────────┘
+
+  1. Setup (first time only):
+     ./setup.sh
+  
+  2. Start Backend (Terminal 1):
+     ./start_backend.sh
+  
+  3. Start WAF (Terminal 2):
+     ./start_sentinel.sh
+
+  ✅ Dashboard: http://127.0.0.1:8000
+
+
+┌──────────────────────────────────────────────────────────────┐
+│ 🎯 DEMO FLOW                                                 │
+└──────────────────────────────────────────────────────────────┘
+
+  1. Normal Traffic Test:
+     curl http://127.0.0.1:8000/proxy/data
+  
+  2. Launch Attack (Terminal 3):
+     python3 attacker/attack.py
+     → Choose [2] Proxy /data
+  
+  3. Watch Dashboard:
+     → Defense escalates: NORMAL → ELEVATED → DEFENSE
+     → Blocks accumulate
+     → Financial savings calculated
+
+
+┌──────────────────────────────────────────────────────────────┐
+│ 🔗 KEY ENDPOINTS                                             │
+└──────────────────────────────────────────────────────────────┘
+
+  WAF (Port 8000):
+  ├─ /                    → Dashboard UI
+  ├─ /health              → WAF health check
+  ├─ /proxy/{path} ⭐     → Reverse proxy (NEW!)
+  ├─ /api/test            → Legacy test endpoint
+  ├─ /api/metrics         → Detailed metrics
+  ├─ /api/summary         → Protection summary
+  ├─ /api/status          → System status
+  └─ /api/reset [POST]    → Reset all metrics
+
+  Backend (Port 9000):
+  ├─ /                    → Service info
+  ├─ /health              → Health check
+  ├─ /data ⭐             → Main target
+  ├─ /accounts/{id}       → Account details
+  └─ /transactions [POST] → Create transaction
+
+
+┌──────────────────────────────────────────────────────────────┐
+│ 🛡️  TRAFFIC FLOW                                             │
+└──────────────────────────────────────────────────────────────┘
+
+  Client Request
+      ↓
+  [SentinelShield WAF :8000]
+      ↓
+  Rate Limiting Check
+      ↓
+  ├─ BLOCKED → 429 Response
+  │
+  └─ ALLOWED → Forward to Backend :9000
+                    ↓
+                Backend Response
+                    ↓
+                Back to Client
+
+
+┌──────────────────────────────────────────────────────────────┐
+│ ⚙️  DEFENSE MODES                                            │
+└──────────────────────────────────────────────────────────────┘
+
+  Mode      Trigger       Limit        Block Time
+  ───────────────────────────────────────────────────
+  NORMAL    Default       20/5s        60s
+  ELEVATED  30 blocked    15/5s        120s
+  DEFENSE   100 blocked   10/5s        300s
+
+
+┌──────────────────────────────────────────────────────────────┐
+│ 🧪 TEST SCENARIOS                                            │
+└──────────────────────────────────────────────────────────────┘
+
+  ✅ Normal Operation (10 requests):
+  for i in {1..10}; do curl http://127.0.0.1:8000/proxy/data; done
+
+  ⚠️  Trigger Rate Limit (25 rapid):
+  for i in {1..25}; do 
+    curl http://127.0.0.1:8000/proxy/data &
+  done; wait
+
+  🚨 Full Attack:
+  python3 attacker/attack.py
+
+  🔄 Reset System:
+  curl -X POST http://127.0.0.1:8000/api/reset
+
+
+┌──────────────────────────────────────────────────────────────┐
+│ 📊 WHAT TO SHOW IN DEMO                                      │
+└──────────────────────────────────────────────────────────────┘
+
+  1. ✅ System Architecture
+     → Show 2 servers (backend + WAF)
+     → Explain reverse proxy concept
+
+  2. ✅ Normal Operation
+     → curl through proxy
+     → Show dashboard increment
+
+  3. ✅ Attack Detection
+     → Run attack.py
+     → Watch real-time blocking
+
+  4. ✅ Defense Escalation
+     → Mode: NORMAL → ELEVATED → DEFENSE
+     → Show changing thresholds
+
+  5. ✅ Financial Impact
+     → Point out cost savings
+     → Show hourly/daily projections
+
+  6. ✅ Risk Intelligence
+     → Top offender: 127.0.0.1
+     → Risk score calculation
+
+
+┌──────────────────────────────────────────────────────────────┐
+│ 🐛 TROUBLESHOOTING                                           │
+└──────────────────────────────────────────────────────────────┘
+
+  ❌ "Connection refused" on /proxy/*
+     → Start backend: ./start_backend.sh
+
+  ❌ All requests get 429
+     → Click RESET on dashboard
+     → Or: curl -X POST http://127.0.0.1:8000/api/reset
+
+  ❌ Dashboard not loading
+     → Check WAF is running: ./start_sentinel.sh
+     → Verify frontend/ directory exists
+
+  ❌ Backend error 502
+     → Backend crashed - restart it
+     → Check logs in Terminal 1
+
+
+┌──────────────────────────────────────────────────────────────┐
+│ 📁 FILE STRUCTURE                                            │
+└──────────────────────────────────────────────────────────────┘
+
+  sentinelshield-waf/
+  ├── backend/
+  │   ├── main.py              🔧 MODIFIED (proxy added)
+  │   ├── rate_limiter.py      ✅ UNCHANGED
+  │   └── metrics.py           ✅ UNCHANGED
+  ├── frontend/
+  │   ├── index.html           ✅ UNCHANGED
+  │   ├── main.js              ✅ UNCHANGED
+  │   └── style.css            ✅ UNCHANGED
+  ├── protected_server/
+  │   └── app.py               ✨ NEW
+  ├── attacker/
+  │   └── attack.py            ✨ NEW (enhanced)
+  ├── start_backend.sh         ✨ NEW
+  ├── start_sentinel.sh        ✨ NEW
+  ├── setup.sh                 ✨ NEW
+  ├── README.md                ✨ NEW
+  ├── CHANGELOG.md             ✨ NEW
+  └── requirements.txt         🔧 MODIFIED
+
+
+┌──────────────────────────────────────────────────────────────┐
+│ ✅ FEATURES PRESERVED                                        │
+└──────────────────────────────────────────────────────────────┘
+
+  ✓ Adaptive rate limiting
+  ✓ Risk scoring engine
+  ✓ Defense mode escalation
+  ✓ Exponential IP blocking
+  ✓ Financial calculations
+  ✓ Real-time dashboard
+  ✓ Top offenders tracking
+  ✓ Original /api/test endpoint
+  ✓ All metrics & analytics
+
+
+┌──────────────────────────────────────────────────────────────┐
+│ ⭐ NEW FEATURES                                              │
+└──────────────────────────────────────────────────────────────┘
+
+  ✨ Reverse proxy to backend
+  ✨ All HTTP methods (GET/POST/PUT/DELETE/PATCH)
+  ✨ Query parameter forwarding
+  ✨ Request body forwarding
+  ✨ Security header injection
+  ✨ Backend error handling
+  ✨ Multi-vector attack simulator
+  ✨ Automated startup scripts
+  ✨ Comprehensive documentation
+
+
+┌──────────────────────────────────────────────────────────────┐
+│ 💡 PRO TIPS                                                  │
+└──────────────────────────────────────────────────────────────┘
+
+  • Use setup.sh for one-command installation
+  • Backend must start BEFORE SentinelShield
+  • Attack script has 4 modes - try them all
+  • Watch defense mode badge on dashboard
+  • Financial savings accumulate in real-time
+  • Reset button clears everything instantly
+  • Check both terminals for detailed logs
+
+
+┌──────────────────────────────────────────────────────────────┐
+│ 📖 DOCUMENTATION                                             │
+└──────────────────────────────────────────────────────────────┘
+
+  README.md       → Full documentation
+  CHANGELOG.md    → What changed and why
+  THIS FILE       → Quick reference
+
+
+══════════════════════════════════════════════════════════════
+
+            Built for Hackathon Success 🏆
+          Transform Your Backend Into a Fortress 🛡️
+
+══════════════════════════════════════════════════════════════
